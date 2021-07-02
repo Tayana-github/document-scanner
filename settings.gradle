@@ -1,0 +1,4 @@
+rootProject.name = "ShravanLibrary"
+include ':app'
+include ':mylibrary'
+include ':openCVLibrary3413'
