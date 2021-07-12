@@ -103,9 +103,7 @@ public class MainActivity extends AppCompatActivity {
                 finish();
             }
 
-        }
-
-        if (resultCode == 201) {
+        }else if (resultCode == 201) {
 
 
             Bundle extras = data.getExtras();
@@ -130,8 +128,7 @@ public class MainActivity extends AppCompatActivity {
                 finish();
 
             }
-        }
-
+        }else
         if (resultCode == 301) {
 
 
@@ -149,6 +146,9 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
 
             }
+        }
+        else{
+            finish();
         }
 
     }

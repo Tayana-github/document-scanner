@@ -1500,5 +1500,9 @@ public class Camera2APIActivity extends AppCompatActivity
             return aeState != null && aeState >= 1;
         }
 
-
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        finish();
+    }
 }

@@ -91,15 +91,16 @@ public class PickFromGalleryActivity extends AppCompatActivity {
                 }
                 setResult(201, intent);
 
-                finish();
+              //  finish();
 
             } catch (IOException e) {
                 e.printStackTrace();
-                finish();
+               // finish();
             }
 
 
         }
+        finish();
     }
 
     private RectData findEdges(Uri uri) throws IOException {
