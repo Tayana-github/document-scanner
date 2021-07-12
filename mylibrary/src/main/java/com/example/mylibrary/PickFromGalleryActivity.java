@@ -17,7 +17,6 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-i
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
