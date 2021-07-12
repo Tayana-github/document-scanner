@@ -7,7 +7,7 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
-import android.media.ExifInterface;
+
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,7 +17,7 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import com.theartofdev.edmodo.cropper.CropImage;
+i
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
@@ -61,7 +61,8 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         }
         if(isStoragePermissionGranted())
         {
-            Intent intent = new Intent();
+            Intent intent = new Intent(Intent.ACTION_PICK,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             intent.setType("image/*");
             intent.setAction(Intent.ACTION_GET_CONTENT);
             startActivityForResult(Intent.createChooser(intent,
@@ -79,7 +80,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
             try {
                 Intent intent = new Intent();
 
-                intent.putExtra("filename",getPath(getApplicationContext(),Uri.parse(data.getData().toString())));
+                intent.putExtra("filename",getPath(this,data.getData()));
 
                 if(edgeDetection) {
                     RectData rectData = findEdges(data.getData());
@@ -110,7 +111,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
         bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 
-bitmap=rotateBitmap(bitmap,getOrientation(getPath(this,uri)));
+
 
         //Log.e(TAG,"data: "+mat.size());
         Mat mat = new Mat(bitmap.getHeight(), bitmap.getWidth(), CvType.CV_8UC3);
@@ -267,66 +268,5 @@ bitmap=rotateBitmap(bitmap,getOrientation(getPath(this,uri)));
         }
     }
 
-public static int getOrientation(String uri){
-    ExifInterface exif = null;
-    try {
-        exif = new ExifInterface(uri);
-    } catch (IOException e) {
-        e.printStackTrace();
-    }
-    int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_UNDEFINED);
-    return orientation;
-}
-
-    public static Bitmap rotateBitmap(Bitmap bitmap, int orientation) {
-        Log.e(TAG, "rotateBitmap: "+"ExifInterface");
-        Matrix matrix = new Matrix();
-       // matrix.setRotate(90);
-        switch (orientation) {
-            case  ExifInterface.ORIENTATION_UNDEFINED:
-                matrix.setRotate(90);
-                break;
-            case ExifInterface.ORIENTATION_NORMAL:
-                matrix.setRotate(90);
-                break;
-            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL:
-               matrix.setRotate(90);
-                matrix.setScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_180:
-                matrix.setRotate(180);
-                break;
-            case ExifInterface.ORIENTATION_FLIP_VERTICAL:
-                matrix.setRotate(180+90);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_TRANSPOSE:
-                matrix.setRotate(90+90);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_90:
-                matrix.setRotate(90+90);
-                break;
-            case ExifInterface.ORIENTATION_TRANSVERSE:
-                matrix.setRotate(-90+90);
-                matrix.postScale(-1, 1);
-                break;
-            case ExifInterface.ORIENTATION_ROTATE_270:
-                matrix.setRotate(-90+90);
-                break;
-            default:
-                return bitmap;
-        }
-        try {
-            Bitmap bmRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-            bitmap.recycle();
-            return bmRotated;
-        }
-        catch (OutOfMemoryError e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 
     }
