@@ -5,9 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.example.mylibrary.CropImageActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -21,10 +19,10 @@ public class MainActivity extends AppCompatActivity {
         //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
         intent.putExtra("sourceType", 1);
         intent.putExtra("CROP_ENABLE", true);
-       intent.putExtra("targetHeight", 720);
-       intent.putExtra("targetWidth", 1080);
+        intent.putExtra("targetHeight", 720);
+        intent.putExtra("targetWidth", 1080);
 
-      intent.putExtra("edgeDetection", true);
+        intent.putExtra("edgeDetection", true);
         startActivityForResult(intent, 2);
         //finish();
     }

@@ -31,7 +31,7 @@
             android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
             android:theme="@style/Base.Theme.AppCompat" />
         <activity android:name="com.example.mylibrary.Camera2APIActivity"  android:configChanges="keyboard|keyboardHidden|screenSize|uiMode"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
 <!--        <activity android:name="com.example.mylibrary.MainActivity2" />-->
         <activity android:name="com.example.mylibrary.CropImageActivity" />
 <!--        <activity android:name="com.example.mylibrary.BrowsePictureActivity" />-->

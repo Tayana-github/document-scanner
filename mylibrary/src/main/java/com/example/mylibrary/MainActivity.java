@@ -98,8 +98,8 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                intent.putExtra("filepath", getPath(getApplicationContext(), Uri.parse(filepath)));
-                setResult(2, intent);
+                intent.putExtra("filepath", filepath);
+                setResult(401, intent);
                 finish();
             }
 
@@ -125,8 +125,8 @@ public class MainActivity extends AppCompatActivity {
             else {
 
                 Intent intent = new Intent();
-                intent.putExtra("filepath",getPath(getApplicationContext(),Uri.parse(filepath)));
-                setResult(2, intent);
+                intent.putExtra("filepath",filepath);
+                setResult(401, intent);
                 finish();
 
             }
