@@ -50,6 +50,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -108,7 +109,7 @@ public class Camera2APIActivity extends AppCompatActivity
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
-    private static boolean FLASH_MODE = false;
+    private  int FLASH_MODE = 5;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -168,11 +169,13 @@ public class Camera2APIActivity extends AppCompatActivity
         @Override
         public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
             openCamera(width, height);
+
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
             configureTransform(width, height);
+
         }
 
         @Override
@@ -182,6 +185,7 @@ public class Camera2APIActivity extends AppCompatActivity
 
         @Override
         public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+
             Bitmap frame = Bitmap.createBitmap(mTextureView.getWidth(), mTextureView.getHeight(), Bitmap.Config.ARGB_8888);
             // Log.e(TAG, "onSurfaceTextureUpdated: "+mTextureView.mRatioWidth+"   "+ mTextureView.mRatioHeight);
 
@@ -229,6 +233,7 @@ public class Camera2APIActivity extends AppCompatActivity
             mCameraOpenCloseLock.release();
             mCameraDevice = cameraDevice;
             createCameraPreviewSession();
+
         }
 
         @Override
@@ -290,6 +295,7 @@ public class Camera2APIActivity extends AppCompatActivity
             ByteBuffer buffer = image.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
+            Log.e(TAG, "onImageAvailable"+bytes.length );
             com.example.mylibrary.RectData rectData = null;
             if(edgeDetection) {
                 Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
@@ -334,10 +340,16 @@ public class Camera2APIActivity extends AppCompatActivity
             Intent intent = new Intent();
             intent.putExtra("filename", file.toURI().toString());
             if(edgeDetection) {
+                if(rectData!=null){
                 intent.putExtra("x", rectData.x);
                 intent.putExtra("y", rectData.y);
                 intent.putExtra("w", rectData.w);
                 intent.putExtra("h", rectData.h);
+                    intent.putExtra("edgeDetection", true);
+                }
+                else{
+                    intent.putExtra("edgeDetection", false);
+                }
                 // intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
                 //intent.putExtra("filepath",path);
             }
@@ -386,12 +398,15 @@ public class Camera2APIActivity extends AppCompatActivity
     /**
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
+
     private CameraCaptureSession.CaptureCallback mCaptureCallback
             = new CameraCaptureSession.CaptureCallback() {
 
         private void process(CaptureResult result) {
+
             switch (mState) {
                 case STATE_PREVIEW: {
+
 
                     // We have nothing to do when the camera preview is working normally.
                     break;
@@ -541,18 +556,31 @@ public class Camera2APIActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera2api);
 
-        
-                Bundle extras = getIntent().getExtras();
+       // FLASH_MODE=3;
+        Bundle extras = getIntent().getExtras();
         if (extras != null) {
             edgeDetection=  extras.getBoolean("edgeDetection");
          
             //The key argument here must match that used in the other activity
         }
         findViewById(R.id.picture).setOnClickListener(this);
-        // view.findViewById(R.id.info).setOnClickListener(this);
-        mTextureView = (com.example.mylibrary.AutoFitTextureView) findViewById(R.id.texture);
 
-        spinner = (ProgressBar) findViewById(R.id.pbHeaderProgress);
+        mTextureView = (com.example.mylibrary.AutoFitTextureView) findViewById(R.id.texture);
+        mTextureView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(mState!=0) {
+                    try {
+                        setFocusArea(event.getX(), event.getY());
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                }
+                return false;
+            }
+        });
+
+       // spinner = (ProgressBar) findViewById(R.id.pbHeaderProgress);
         surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
         flashButton = findViewById(R.id.flash);
         flashButton.setOnClickListener(this);
@@ -641,6 +669,8 @@ public class Camera2APIActivity extends AppCompatActivity
 
                 StreamConfigurationMap map = characteristics.get(
                         CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                Log.e(TAG, "setUpCameraOutputs: "+map );
+
                 if (map == null) {
                     continue;
                 }
@@ -649,6 +679,7 @@ public class Camera2APIActivity extends AppCompatActivity
                 Size largest = Collections.max(
                         Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
                         new CompareSizesByArea());
+                Log.e(TAG, "setUpCameraOutputs: "+largest.getWidth() );
                 mImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                         ImageFormat.JPEG, /*maxImages*/2);
                 mImageReader.setOnImageAvailableListener(
@@ -719,6 +750,7 @@ public class Camera2APIActivity extends AppCompatActivity
 
                 // Check if the flash is supported.
                 Boolean available = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+                Log.e(TAG, "setUpCameraOutputs: "+available );
                 mFlashSupported = available == null ? false : available;
 
                 mCameraId = cameraId;
@@ -740,6 +772,7 @@ public class Camera2APIActivity extends AppCompatActivity
      */
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void openCamera(int width, int height) {
+
         if (ContextCompat.checkSelfPermission(Camera2APIActivity.this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
             requestCameraPermission();
@@ -795,6 +828,7 @@ public class Camera2APIActivity extends AppCompatActivity
         mBackgroundThread = new HandlerThread("CameraBackground");
         mBackgroundThread.start();
         mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+
     }
 
     /**
@@ -848,14 +882,14 @@ public class Camera2APIActivity extends AppCompatActivity
                                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
-                                // setAutoFlash(mPreviewRequestBuilder);
+                               // setAutoFlash(mPreviewRequestBuilder);
 
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
                                 mCaptureSession.setRepeatingRequest(mPreviewRequest,
                                         mCaptureCallback, mBackgroundHandler);
 
-
+                                //toggleFlashMode(FLASH_MODE);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
@@ -913,6 +947,8 @@ public class Camera2APIActivity extends AppCompatActivity
     private void takePicture() {
         // spinner.setVisibility(View.VISIBLE);
         lockFocus();
+        //runPrecaptureSequence();
+        //captureStillPicture();
     }
 
     /**
@@ -969,6 +1005,7 @@ public class Camera2APIActivity extends AppCompatActivity
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             setAutoFlash(captureBuilder);
+
 
             // Orientation
             int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
@@ -1044,21 +1081,40 @@ public class Camera2APIActivity extends AppCompatActivity
             }
         }
         if (id == R.id.flash) {
-            FLASH_MODE = !FLASH_MODE;
-            if (FLASH_MODE) {
-                flashButton.setImageResource(R.drawable.ic_flash_foreground);
-            } else {
-                flashButton.setImageResource(R.drawable.ic_flashoff_foreground);
+            FLASH_MODE = (FLASH_MODE+1)%3;
+            switch(FLASH_MODE){
+                case 0: flashButton.setImageResource(R.drawable.ic_flash_on_foreground);
+                break;
+                case 1: flashButton.setImageResource(R.drawable.ic_flash_auto_foreground);
+                    break;
+                case 2: flashButton.setImageResource(R.drawable.ic_flash_off_foreground);
+                    break;
+                default:break;
+
             }
             toggleFlashMode(FLASH_MODE);
 
         }
     }
 
+
+
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
-            requestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
-                    CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+
+            Log.e(TAG, "setAutoFlash: "+FLASH_MODE );
+          switch(FLASH_MODE) {
+              case 0:
+              requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+
+              break;
+              case 1:
+                  requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                  break;
+              default:requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+                  break;
+          }
+
         }
     }
 
@@ -1344,32 +1400,45 @@ public class Camera2APIActivity extends AppCompatActivity
         return bestRect;
     }
 
-    public void toggleFlashMode(boolean enable) {
+    public void toggleFlashMode(int enable) {
         try {
-            if (true) {
-                if (enable) {
-                    mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_TORCH);
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-                } else {
-                    mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, CaptureRequest.FLASH_MODE_OFF);
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
-                }
-                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, null);
-            }
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        try {
-            setFocusArea(event.getX(),event.getY());
+            switch(enable){
+                case 0:
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
+                    break;
+                case 2:
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+                    break;
+                case 1:
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                    break;
+                default:break;
+
+            }
+
+                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        return super.onTouchEvent(event);
     }
+//
+//    @Override
+//    public boolean onTouchEvent(MotionEvent event) {
+//        super.onTouchEvent(event);
+//        //View.performClick();
+//        try {
+//            if(mTextureView.getWidth()>=event.getX() && mTextureView.getHeight()>=event.getY()) {
+//                setFocusArea(event.getX(), event.getY());
+//            }
+//            else{
+//                Log.e(TAG, "onTouchEvent: " );
+//            }
+//        } catch (CameraAccessException e) {
+//            e.printStackTrace();
+//        }
+//        return false;
+//    }
 
     private void setFocusArea(float focus_point_x, float focus_point_y) throws CameraAccessException {
 

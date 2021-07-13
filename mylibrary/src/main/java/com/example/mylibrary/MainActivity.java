@@ -80,15 +80,18 @@ public class MainActivity extends AppCompatActivity {
 
             Bundle extras = data.getExtras();
             filepath = extras.getString("filename");
+            edgeDetection=extras.getBoolean("edgeDetection");
             if (CROP_ENABLE) {
                 Intent intent = new Intent(this, CropImageActivity.class);
-
+                intent.putExtra("edgeDetection", edgeDetection);
                 intent.putExtra("filename", filepath);
-                intent.putExtra("x", extras.getInt("x"));
-                intent.putExtra("y", extras.getInt("y"));
-                intent.putExtra("w", extras.getInt("w"));
-                intent.putExtra("h", extras.getInt("h"));
+                if(edgeDetection) {
 
+                    intent.putExtra("x", extras.getInt("x"));
+                    intent.putExtra("y", extras.getInt("y"));
+                    intent.putExtra("w", extras.getInt("w"));
+                    intent.putExtra("h", extras.getInt("h"));
+                }
                 startActivityForResult(intent, 300);
             }
             else {
@@ -108,16 +111,18 @@ public class MainActivity extends AppCompatActivity {
 
             Bundle extras = data.getExtras();
             filepath = extras.getString("filename");
-
+            edgeDetection=extras.getBoolean("edgeDetection");
             if (CROP_ENABLE) {
                 Intent intent = new Intent(this, CropImageActivity.class);
-
+                intent.putExtra("edgeDetection", edgeDetection);
                 intent.putExtra("filename", Uri.fromFile(new File(filepath)).toString());
-                intent.putExtra("x", extras.getInt("x"));
-                intent.putExtra("y", extras.getInt("y"));
-                intent.putExtra("w", extras.getInt("w"));
-                intent.putExtra("h", extras.getInt("h"));
+                if(edgeDetection) {
 
+                    intent.putExtra("x", extras.getInt("x"));
+                    intent.putExtra("y", extras.getInt("y"));
+                    intent.putExtra("w", extras.getInt("w"));
+                    intent.putExtra("h", extras.getInt("h"));
+                }
                 startActivityForResult(intent, 300);
             }
             else {

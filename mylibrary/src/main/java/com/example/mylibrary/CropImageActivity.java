@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import com.theartofdev.edmodo.cropper.CropImage;
-import com.theartofdev.edmodo.cropper.CropImageView;
+
 
 
 
@@ -24,7 +24,7 @@ public class CropImageActivity extends AppCompatActivity {
     String value;
 
     RectData rectData;
-
+    private static boolean edgeDetection = false;
 
 
     @Override
@@ -32,22 +32,32 @@ public class CropImageActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.crop_image_view);
 
+
+
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
              value = extras.getString("filename");
-             rectData=new com.example.mylibrary.RectData(extras.getInt("w"),extras.getInt("h"),extras.getInt("x"),extras.getInt("y"));
-
+            edgeDetection=  extras.getBoolean("edgeDetection");
+            if(edgeDetection) {
+                rectData = new com.example.mylibrary.RectData(extras.getInt("w"), extras.getInt("h"), extras.getInt("x"), extras.getInt("y"));
+            }
             //The key argument here must match that used in the other activity
         }
 
 
 
         if(isStoragePermissionGranted()) {
+            if(edgeDetection) {
 
-            CropImage.activity(Uri.parse(value)).setAutoZoomEnabled(true).setInitialCropWindowRectangle(new android.graphics.Rect(rectData.x, rectData.y, rectData.x + rectData.w, rectData.y + rectData.h)).start(CropImageActivity.this);
-       //CropImage.activity(Uri.parse(value)).start(CropImageActivity.this);
 
-            //cropImageView.rotateImage(0);
+                CropImage.activity(Uri.parse(value)).setAutoZoomEnabled(true).setInitialCropWindowRectangle(new android.graphics.Rect(rectData.x, rectData.y, rectData.x + rectData.w, rectData.y + rectData.h)).start(CropImageActivity.this);
+
+            }
+            else{
+                CropImage.activity(Uri.parse(value)).setInitialCropWindowPaddingRatio(0).start(CropImageActivity.this);
+            }
+
+
         }
         else{
             ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
@@ -116,8 +126,15 @@ finish();
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(grantResults[0]== PackageManager.PERMISSION_GRANTED){
             Log.e(TAG,"Permission: "+permissions[0]+ "was "+grantResults[0]);
-            CropImage.activity(Uri.parse(value)).setAutoZoomEnabled(true).setInitialCropWindowRectangle(new android.graphics.Rect(rectData.x, rectData.y, rectData.x + rectData.w, rectData.y + rectData.h)).start(CropImageActivity.this);
+            if(edgeDetection) {
 
+
+                CropImage.activity(Uri.parse(value)).setAutoZoomEnabled(true).setInitialCropWindowRectangle(new android.graphics.Rect(rectData.x, rectData.y, rectData.x + rectData.w, rectData.y + rectData.h)).start(CropImageActivity.this);
+
+            }
+            else{
+                CropImage.activity(Uri.parse(value)).setInitialCropWindowPaddingRatio(0).start(CropImageActivity.this);
+            }
             //resume tasks needing this permission
         }
         else {

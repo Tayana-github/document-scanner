@@ -1,6 +1,7 @@
 package com.example.mylibrary;
 
 import android.Manifest;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +12,8 @@ import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+
+import android.provider.DocumentsContract;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -78,29 +81,38 @@ public class PickFromGalleryActivity extends AppCompatActivity {
               ) {
             try {
                 Intent intent = new Intent();
-
-                intent.putExtra("filename",getPath(this,data.getData()));
+                Log.e(TAG, "onActivityResult: "+getRealPathFromURI(getApplicationContext(),data.getData() ));
+                intent.putExtra("filename",getRealPathFromURI(this,data.getData()));
 
                 if(edgeDetection) {
                     RectData rectData = findEdges(data.getData());
 
-                    intent.putExtra("x", rectData.x);
-                    intent.putExtra("y", rectData.y);
-                    intent.putExtra("w", rectData.w);
-                    intent.putExtra("h", rectData.h);
+                    if(rectData!=null){
+                        intent.putExtra("x", rectData.x);
+                        intent.putExtra("y", rectData.y);
+                        intent.putExtra("w", rectData.w);
+                        intent.putExtra("h", rectData.h);
+                        intent.putExtra("edgeDetection", true);
+                    }
+                    else{
+                        intent.putExtra("edgeDetection", false);
+                    }
                 }
                 setResult(201, intent);
 
-              //  finish();
+               finish();
 
             } catch (IOException e) {
                 e.printStackTrace();
-               // finish();
+                Intent intent = new Intent();
+                //intent.putExtra("filename",null);
+                setResult(201, intent);
+                finish();
             }
 
 
         }
-        finish();
+
     }
 
     private RectData findEdges(Uri uri) throws IOException {
@@ -178,58 +190,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         return bestRect;
     }
 
-    public static String getPath(final Context context, final Uri uri) {
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-        Log.i("URI",uri+"");
-        String result = uri+"";
-        // DocumentProvider
-        //  if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-        if (isKitKat && (result.contains("media.documents"))) {
-            String[] ary = result.split("/");
-            int length = ary.length;
-            String imgary = ary[length-1];
-            final String[] dat = imgary.split("%3A");
-            final String docId = dat[1];
-            final String type = dat[0];
-            Uri contentUri = null;
-            if ("image".equals(type)) {
-                contentUri = android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-            } else if ("video".equals(type)) {
-            } else if ("audio".equals(type)) {
-            }
-            final String selection = "_id=?";
-            final String[] selectionArgs = new String[] {
-                    dat[1]
-            };
-            return getDataColumn(context, contentUri, selection, selectionArgs);
-        } else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            return getDataColumn(context, uri, null, null);
-        }
-        // File
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-        return null;
-    }
 
-    public static String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
-        Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = {
-                column
-        };
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column_index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(column_index);
-            }
-        } finally {
-            if (cursor != null)
-                cursor.close();
-        }
-        return null;
-    }
     public  boolean isStoragePermissionGranted() {
         if (Build.VERSION.SDK_INT >= 23) {
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -267,5 +228,29 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         }
     }
 
+
+    public static String getRealPathFromURI(Context context, Uri contentUri){
+        String filePath = "";
+        String wholeID = DocumentsContract.getDocumentId(contentUri);
+
+        // Split at colon, use second item in the array
+        String id = wholeID.split(":")[1];
+
+        String[] column = { MediaStore.Images.Media.DATA };
+
+        // where id is equal to
+        String sel = MediaStore.Images.Media._ID + "=?";
+
+        Cursor cursor = context.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                column, sel, new String[]{ id }, null);
+
+        int columnIndex = cursor.getColumnIndex(column[0]);
+
+        if (cursor.moveToFirst()) {
+            filePath = cursor.getString(columnIndex);
+        }
+        cursor.close();
+        return filePath;
+    }
 
     }
