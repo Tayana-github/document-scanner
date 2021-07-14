@@ -162,40 +162,7 @@ public class Camera2APIActivity extends AppCompatActivity
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
      * {@link TextureView}.
      */
-    private final TextureView.SurfaceTextureListener mSurfaceTextureListener
-            = new TextureView.SurfaceTextureListener() {
-
-        @RequiresApi(api = Build.VERSION_CODES.M)
-        @Override
-        public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
-            openCamera(width, height);
-
-        }
-
-        @Override
-        public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
-            configureTransform(width, height);
-
-        }
-
-        @Override
-        public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
-            return true;
-        }
-
-        @Override
-        public void onSurfaceTextureUpdated(SurfaceTexture texture) {
-
-            Bitmap frame = Bitmap.createBitmap(mTextureView.getWidth(), mTextureView.getHeight(), Bitmap.Config.ARGB_8888);
-            // Log.e(TAG, "onSurfaceTextureUpdated: "+mTextureView.mRatioWidth+"   "+ mTextureView.mRatioHeight);
-
-            mTextureView.getBitmap(frame);
-           if( edgeDetection)
-            drawRectangle(frame);
-          
-        }
-
-    };
+    private static TextureView.SurfaceTextureListener mSurfaceTextureListener;
 
     /**
      * ID of the current {@link CameraDevice}.
@@ -225,36 +192,7 @@ public class Camera2APIActivity extends AppCompatActivity
     /**
      * {@link CameraDevice.StateCallback} is called when {@link CameraDevice} changes its state.
      */
-    private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
-
-        @Override
-        public void onOpened(@NonNull CameraDevice cameraDevice) {
-            // This method is called when the camera is opened.  We start camera preview here.
-            mCameraOpenCloseLock.release();
-            mCameraDevice = cameraDevice;
-            createCameraPreviewSession();
-
-        }
-
-        @Override
-        public void onDisconnected(@NonNull CameraDevice cameraDevice) {
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-        }
-
-        @Override
-        public void onError(@NonNull CameraDevice cameraDevice, int error) {
-            mCameraOpenCloseLock.release();
-            cameraDevice.close();
-            mCameraDevice = null;
-            Activity activity = Camera2APIActivity.this;
-            if (null != activity) {
-                activity.finish();
-            }
-        }
-
-    };
+    private static CameraDevice.StateCallback mStateCallback ;
 
     /**
      * An additional thread for running tasks that shouldn't block the UI.
@@ -274,94 +212,12 @@ public class Camera2APIActivity extends AppCompatActivity
     /**
      * This is the output file for our picture.
      */
-    private File mFile;
 
     /**
      * This a callback object for the {@link ImageReader}. "onImageAvailable" will be called when a
      * still image is ready to be saved.
      */
-    private final ImageReader.OnImageAvailableListener mOnImageAvailableListener
-            = new ImageReader.OnImageAvailableListener() {
-
-        @Override
-        public void onImageAvailable(ImageReader reader) {
-            Log.e(TAG, "onImageAvailable: ");
-            // mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mFile));
-//
-            Image image = null;
-
-
-            image = reader.acquireLatestImage();
-            ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-            byte[] bytes = new byte[buffer.remaining()];
-            buffer.get(bytes);
-            Log.e(TAG, "onImageAvailable"+bytes.length );
-            com.example.mylibrary.RectData rectData = null;
-            if(edgeDetection) {
-                Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-                float degrees = 90; //rotation degree
-                Matrix matrix = new Matrix();
-                matrix.setRotate(degrees);
-                Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
-
-                Utils.matToBitmap(m, roiBitmap);
-               
-
-                roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
-
-
-                rectData = findEdges(roiBitmap);
-            }
-            String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
-
-            Log.e(TAG, "saveToInternalStorage: " + fileName);
-
-            File file = new File(getApplicationContext().getCacheDir(), "shr.jpg");
-            FileOutputStream output = null;
-            try {
-                output = new FileOutputStream(file);
-                output.write(bytes);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                image.close();
-                if (null != output) {
-                    try {
-                        output.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-
-           // Intent intent = new Intent(Camera2APIActivity.this, CropImageActivity.class);
-            Intent intent = new Intent();
-            intent.putExtra("filename", file.toURI().toString());
-            if(edgeDetection) {
-                if(rectData!=null){
-                intent.putExtra("x", rectData.x);
-                intent.putExtra("y", rectData.y);
-                intent.putExtra("w", rectData.w);
-                intent.putExtra("h", rectData.h);
-                    intent.putExtra("edgeDetection", true);
-                }
-                else{
-                    intent.putExtra("edgeDetection", false);
-                }
-                // intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                //intent.putExtra("filepath",path);
-            }
-            setResult(101, intent);
-
-            finish();
-
-
-        }
-
-
-    };
+    private static ImageReader.OnImageAvailableListener mOnImageAvailableListener;
 
     /**
      * {@link CaptureRequest.Builder} for the camera preview
@@ -383,7 +239,7 @@ public class Camera2APIActivity extends AppCompatActivity
     /**
      * A {@link Semaphore} to prevent the app from exiting before closing the camera.
      */
-    private Semaphore mCameraOpenCloseLock = new Semaphore(1);
+    private Semaphore mCameraOpenCloseLock ;
 
     /**
      * Whether the current camera device supports Flash or not.
@@ -399,82 +255,7 @@ public class Camera2APIActivity extends AppCompatActivity
      * A {@link CameraCaptureSession.CaptureCallback} that handles events related to JPEG capture.
      */
 
-    private CameraCaptureSession.CaptureCallback mCaptureCallback
-            = new CameraCaptureSession.CaptureCallback() {
-
-        private void process(CaptureResult result) {
-
-            switch (mState) {
-                case STATE_PREVIEW: {
-
-
-                    // We have nothing to do when the camera preview is working normally.
-                    break;
-                }
-                case STATE_WAITING_LOCK: {
-
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    if (afState == null) {
-                        captureStillPicture();
-                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
-                            CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-                        // CONTROL_AE_STATE can be null on some devices
-                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                        if (aeState == null ||
-                                aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            mState = STATE_PICTURE_TAKEN;
-                            captureStillPicture();
-                        } else {
-                            runPrecaptureSequence();
-                        }
-                    }
-                    break;
-                }
-                case STATE_WAITING_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null ||
-                            aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
-                            aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-                        mState = STATE_WAITING_NON_PRECAPTURE;
-                    }
-                    break;
-                }
-                case STATE_WAITING_NON_PRECAPTURE: {
-                    // CONTROL_AE_STATE can be null on some devices
-                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        mState = STATE_PICTURE_TAKEN;
-                        captureStillPicture();
-                    }
-                    break;
-                }
-            }
-        }
-
-        @Override
-        public void onCaptureProgressed(@NonNull CameraCaptureSession session,
-                                        @NonNull CaptureRequest request,
-                                        @NonNull CaptureResult partialResult) {
-
-
-            process(partialResult);
-        }
-
-        @RequiresApi(api = Build.VERSION_CODES.P)
-        @Override
-        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
-                                       @NonNull CaptureRequest request,
-                                       @NonNull TotalCaptureResult result) {
-            //  Log.e(TAG, "onImageAvailable: " + mTextureView.getBitmap());
-
-            process(result);
-            // new CustomTask().execute((Void[])null);
-
-
-        }
-
-    };
+    private CameraCaptureSession.CaptureCallback mCaptureCallback;
 
 
     private SurfaceView surfaceView;
@@ -497,60 +278,8 @@ public class Camera2APIActivity extends AppCompatActivity
         }
     }
 
-    /**
-     * Given {@code choices} of {@code Size}s supported by a camera, choose the smallest one that
-     * is at least as large as the respective texture view size, and that is at most as large as the
-     * respective max size, and whose aspect ratio matches with the specified value. If such size
-     * doesn't exist, choose the largest one that is at most as large as the respective max size,
-     * and whose aspect ratio matches with the specified value.
-     *
-     * @param choices           The list of sizes that the camera supports for the intended output
-     *                          class
-     * @param textureViewWidth  The width of the texture view relative to sensor coordinate
-     * @param textureViewHeight The height of the texture view relative to sensor coordinate
-     * @param maxWidth          The maximum width that can be chosen
-     * @param maxHeight         The maximum height that can be chosen
-     * @param aspectRatio       The aspect ratio
-     * @return The optimal {@code Size}, or an arbitrary one if none were big enough
-     */
-    private static Size chooseOptimalSize(Size[] choices, int textureViewWidth,
-                                          int textureViewHeight, int maxWidth, int maxHeight, Size aspectRatio) {
-
-        // Collect the supported resolutions that are at least as big as the preview Surface
-        List<Size> bigEnough = new ArrayList<>();
-        // Collect the supported resolutions that are smaller than the preview Surface
-        List<Size> notBigEnough = new ArrayList<>();
-        int w = aspectRatio.getWidth();
-        int h = aspectRatio.getHeight();
-        for (Size option : choices) {
-            if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
-                    option.getHeight() == option.getWidth() * h / w) {
-                if (option.getWidth() >= textureViewWidth &&
-                        option.getHeight() >= textureViewHeight) {
-                    bigEnough.add(option);
-                } else {
-                    notBigEnough.add(option);
-                }
-            }
-        }
-
-        // Pick the smallest of those big enough. If there is no one big enough, pick the
-        // largest of those not big enough.
-        if (bigEnough.size() > 0) {
-            return Collections.min(bigEnough, new CompareSizesByArea());
-        } else if (notBigEnough.size() > 0) {
-            return Collections.max(notBigEnough, new CompareSizesByArea());
-        } else {
-            Log.e(TAG, "Couldn't find any suitable preview size");
-            return choices[0];
-        }
-    }
-
-//    public static Camera2BasicFragment newInstance() {
-//        return new Camera2BasicFragment();
-//    }
-
-    ImageButton flashButton;
+   private ImageButton flashButton;
+    private com.google.android.material.floatingactionbutton.FloatingActionButton takepictureButton;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -560,10 +289,16 @@ public class Camera2APIActivity extends AppCompatActivity
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             edgeDetection=  extras.getBoolean("edgeDetection");
-         
+
             //The key argument here must match that used in the other activity
         }
-        findViewById(R.id.picture).setOnClickListener(this);
+        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+        flashButton = findViewById(R.id.flash);
+        flashButton.setOnClickListener(this);
+        surfaceView.setZOrderOnTop(true);
+        takepictureButton= findViewById(R.id.picture);
+
+        takepictureButton.setOnClickListener(this);
 
         mTextureView = (com.example.mylibrary.AutoFitTextureView) findViewById(R.id.texture);
         mTextureView.setOnTouchListener(new View.OnTouchListener() {
@@ -576,17 +311,16 @@ public class Camera2APIActivity extends AppCompatActivity
                         e.printStackTrace();
                     }
                 }
+
                 return false;
             }
         });
 
-       // spinner = (ProgressBar) findViewById(R.id.pbHeaderProgress);
-        surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-        flashButton = findViewById(R.id.flash);
-        flashButton.setOnClickListener(this);
-        surfaceView.setZOrderOnTop(true);
+
+
         SurfaceHolder mHolder = surfaceView.getHolder();
         mHolder.setFormat(PixelFormat.TRANSPARENT);
+        initialize();
 
     }
 
@@ -606,7 +340,6 @@ public class Camera2APIActivity extends AppCompatActivity
         // a camera and start preview from here (otherwise, we wait until the surface is ready in
         // the SurfaceTextureListener).
 
-        //openCamera(mTextureView.getWidth(), mTextureView.getHeight());
         if (mTextureView.isAvailable()) {
             openCamera(mTextureView.getWidth(), mTextureView.getHeight());
         } else {
@@ -618,15 +351,22 @@ public class Camera2APIActivity extends AppCompatActivity
     @Override
     public void onPause() {
         closeCamera();
-        // toggleFlashMode(false);
+
         stopBackgroundThread();
         super.onPause();
     }
 
+
+
+
+
+
+
+
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void requestCameraPermission() {
         if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-            //new ConfirmationDialog().show(getChildFragmentManager(), FRAGMENT_DIALOG);
+            new ConfirmationDialog().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
         } else {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
         }
@@ -637,13 +377,180 @@ public class Camera2APIActivity extends AppCompatActivity
                                            @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-//                ErrorDialog.newInstance(getString(R.string.request_permission))
-//                        .show(getChildFragmentManager(), FRAGMENT_DIALOG);
+        finish();
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
+
+
+
+   private void initialize(){
+        mSurfaceTextureListener
+                = new TextureView.SurfaceTextureListener() {
+
+            @RequiresApi(api = Build.VERSION_CODES.M)
+            @Override
+            public void onSurfaceTextureAvailable(SurfaceTexture texture, int width, int height) {
+                openCamera(width, height);
+
+            }
+
+            @Override
+            public void onSurfaceTextureSizeChanged(SurfaceTexture texture, int width, int height) {
+                configureTransform(width, height);
+
+            }
+
+            @Override
+            public boolean onSurfaceTextureDestroyed(SurfaceTexture texture) {
+                return true;
+            }
+
+            @Override
+            public void onSurfaceTextureUpdated(SurfaceTexture texture) {
+
+                Bitmap frame = Bitmap.createBitmap(mTextureView.getWidth(), mTextureView.getHeight(), Bitmap.Config.ARGB_8888);
+                // Log.e(TAG, "onSurfaceTextureUpdated: "+mTextureView.mRatioWidth+"   "+ mTextureView.mRatioHeight);
+
+                mTextureView.getBitmap(frame);
+                if( edgeDetection)
+                    drawRectangle(frame);
+
+            }
+
+        };
+
+
+        mStateCallback = new CameraDevice.StateCallback() {
+
+            @Override
+            public void onOpened(@NonNull CameraDevice cameraDevice) {
+                // This method is called when the camera is opened.  We start camera preview here.
+                mCameraOpenCloseLock.release();
+                mCameraDevice = cameraDevice;
+                createCameraPreviewSession();
+
+            }
+
+            @Override
+            public void onDisconnected(@NonNull CameraDevice cameraDevice) {
+                mCameraOpenCloseLock.release();
+                cameraDevice.close();
+                mCameraDevice = null;
+            }
+
+            @Override
+            public void onError(@NonNull CameraDevice cameraDevice, int error) {
+                mCameraOpenCloseLock.release();
+                cameraDevice.close();
+                mCameraDevice = null;
+                Activity activity = Camera2APIActivity.this;
+                if (null != activity) {
+                    activity.finish();
+                }
+            }
+
+        };
+
+        mOnImageAvailableListener
+                = new ImageReader.OnImageAvailableListener() {
+
+            @Override
+            public void onImageAvailable(ImageReader reader) {
+                Log.e(TAG, "onImageAvailable: ");
+                 mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
+                 //saveImageInTemprory(reader.acquireNextImage());
+
+
+
+            }
+
+
+        };
+
+
+        mCaptureCallback
+                = new CameraCaptureSession.CaptureCallback() {
+
+            private void process(CaptureResult result) {
+
+                switch (mState) {
+                    case STATE_PREVIEW: {
+
+
+                        // We have nothing to do when the camera preview is working normally.
+                        break;
+                    }
+                    case STATE_WAITING_LOCK: {
+
+                        Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                        if (afState == null) {
+                            captureStillPicture();
+                        } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                                CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                            // CONTROL_AE_STATE can be null on some devices
+                            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                            if (aeState == null ||
+                                    aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                                mState = STATE_PICTURE_TAKEN;
+                                captureStillPicture();
+                            } else {
+                                runPrecaptureSequence();
+                            }
+                        }
+                        break;
+                    }
+                    case STATE_WAITING_PRECAPTURE: {
+                        // CONTROL_AE_STATE can be null on some devices
+                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                        if (aeState == null ||
+                                aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
+                                aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                            mState = STATE_WAITING_NON_PRECAPTURE;
+                        }
+                        break;
+                    }
+                    case STATE_WAITING_NON_PRECAPTURE: {
+                        // CONTROL_AE_STATE can be null on some devices
+                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                        if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                            mState = STATE_PICTURE_TAKEN;
+                            captureStillPicture();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            @Override
+            public void onCaptureProgressed(@NonNull CameraCaptureSession session,
+                                            @NonNull CaptureRequest request,
+                                            @NonNull CaptureResult partialResult) {
+
+
+                process(partialResult);
+            }
+
+            @RequiresApi(api = Build.VERSION_CODES.P)
+            @Override
+            public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                           @NonNull CaptureRequest request,
+                                           @NonNull TotalCaptureResult result) {
+                //  Log.e(TAG, "onImageAvailable: " + mTextureView.getBitmap());
+
+                process(result);
+                // new CustomTask().execute((Void[])null);
+
+
+            }
+
+        };
+        mCameraOpenCloseLock = new Semaphore(1);
+    }
+
+
 
     /**
      * Sets up member variables related to camera.
@@ -669,7 +576,7 @@ public class Camera2APIActivity extends AppCompatActivity
 
                 StreamConfigurationMap map = characteristics.get(
                         CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                Log.e(TAG, "setUpCameraOutputs: "+map );
+               // Log.e(TAG, "setUpCameraOutputs: "+map );
 
                 if (map == null) {
                     continue;
@@ -882,7 +789,7 @@ public class Camera2APIActivity extends AppCompatActivity
                                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 // Flash is automatically enabled when necessary.
-                               // setAutoFlash(mPreviewRequestBuilder);
+                                setAutoFlash(mPreviewRequestBuilder);
 
                                 // Finally, we start displaying the camera preview.
                                 mPreviewRequest = mPreviewRequestBuilder.build();
@@ -1105,7 +1012,7 @@ public class Camera2APIActivity extends AppCompatActivity
             Log.e(TAG, "setAutoFlash: "+FLASH_MODE );
           switch(FLASH_MODE) {
               case 0:
-              requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+              requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
 
               break;
               case 1:
@@ -1127,45 +1034,47 @@ public class Camera2APIActivity extends AppCompatActivity
          * The JPEG image
          */
         private final Image mImage;
-        /**
-         * The file we save the image into.
-         */
-        private final File mFile;
 
-        ImageSaver(Image image, File file) {
+
+        ImageSaver(Image image) {
             mImage = image;
-            mFile = file;
+
         }
+
 
         @Override
         public void run() {
+
             ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
-            Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-            float degrees = 90; //rotation degree
-            Matrix matrix = new Matrix();
-            matrix.setRotate(degrees);
-            Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
+            Log.e(TAG, "onImageAvailable"+bytes.length );
+            com.example.mylibrary.RectData rectData = null;
+            if(edgeDetection) {
+                Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+                float degrees = 90; //rotation degree
+                Matrix matrix = new Matrix();
+                matrix.setRotate(degrees);
+                Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
 
-            Utils.matToBitmap(m, roiBitmap);
+                Utils.matToBitmap(m, roiBitmap);
+
+
+                roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
+
+
+                rectData = findEdges(roiBitmap);
+            }
             String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
 
             Log.e(TAG, "saveToInternalStorage: " + fileName);
 
-            File file = new File(Camera2APIActivity.this.getApplicationContext().getCacheDir(), "temp.jpg");
-
-            roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
-
-
-            com.example.mylibrary.RectData rectData = findEdges(roiBitmap);
-
-
+            File file = new File(getApplicationContext().getCacheDir(), "temp.jpg");
             FileOutputStream output = null;
             try {
                 output = new FileOutputStream(file);
                 output.write(bytes);
-                // showToast("image created"+file.getAbsolutePath());
+
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {
@@ -1180,20 +1089,81 @@ public class Camera2APIActivity extends AppCompatActivity
             }
 
 
-            Intent intent = new Intent(Camera2APIActivity.this, com.example.mylibrary.CropImageActivity.class);
-
+            // Intent intent = new Intent(Camera2APIActivity.this, CropImageActivity.class);
+            Intent intent = new Intent();
             intent.putExtra("filename", file.toURI().toString());
-            intent.putExtra("x", rectData.x);
-            intent.putExtra("y", rectData.y);
-            intent.putExtra("w", rectData.w);
-            intent.putExtra("h", rectData.h);
-            //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-            startActivity(intent);
-            //finish();
+            if(edgeDetection) {
+                if(rectData!=null){
+                    intent.putExtra("x", rectData.x);
+                    intent.putExtra("y", rectData.y);
+                    intent.putExtra("w", rectData.w);
+                    intent.putExtra("h", rectData.h);
+                    intent.putExtra("edgeDetection", true);
+                }
+                else{
+                    intent.putExtra("edgeDetection", false);
+                }
+                // intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+                //intent.putExtra("filepath",path);
+            }
+            setResult(101, intent);
+
+            finish();
 
 
         }
 
+    }
+
+
+
+    /**
+     * Given {@code choices} of {@code Size}s supported by a camera, choose the smallest one that
+     * is at least as large as the respective texture view size, and that is at most as large as the
+     * respective max size, and whose aspect ratio matches with the specified value. If such size
+     * doesn't exist, choose the largest one that is at most as large as the respective max size,
+     * and whose aspect ratio matches with the specified value.
+     *
+     * @param choices           The list of sizes that the camera supports for the intended output
+     *                          class
+     * @param textureViewWidth  The width of the texture view relative to sensor coordinate
+     * @param textureViewHeight The height of the texture view relative to sensor coordinate
+     * @param maxWidth          The maximum width that can be chosen
+     * @param maxHeight         The maximum height that can be chosen
+     * @param aspectRatio       The aspect ratio
+     * @return The optimal {@code Size}, or an arbitrary one if none were big enough
+     */
+    private static Size chooseOptimalSize(Size[] choices, int textureViewWidth,
+                                          int textureViewHeight, int maxWidth, int maxHeight, Size aspectRatio) {
+
+        // Collect the supported resolutions that are at least as big as the preview Surface
+        List<Size> bigEnough = new ArrayList<>();
+        // Collect the supported resolutions that are smaller than the preview Surface
+        List<Size> notBigEnough = new ArrayList<>();
+        int w = aspectRatio.getWidth();
+        int h = aspectRatio.getHeight();
+        for (Size option : choices) {
+            if (option.getWidth() <= maxWidth && option.getHeight() <= maxHeight &&
+                    option.getHeight() == option.getWidth() * h / w) {
+                if (option.getWidth() >= textureViewWidth &&
+                        option.getHeight() >= textureViewHeight) {
+                    bigEnough.add(option);
+                } else {
+                    notBigEnough.add(option);
+                }
+            }
+        }
+
+        // Pick the smallest of those big enough. If there is no one big enough, pick the
+        // largest of those not big enough.
+        if (bigEnough.size() > 0) {
+            return Collections.min(bigEnough, new CompareSizesByArea());
+        } else if (notBigEnough.size() > 0) {
+            return Collections.max(notBigEnough, new CompareSizesByArea());
+        } else {
+            Log.e(TAG, "Couldn't find any suitable preview size");
+            return choices[0];
+        }
     }
 
     /**
@@ -1279,126 +1249,7 @@ public class Camera2APIActivity extends AppCompatActivity
         }
     }
 
-    private void drawRectangle(Bitmap roiBitmap) {
 
-        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
-        Utils.bitmapToMat(roiBitmap, mat);
-
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
-
-        // find contours
-        List<MatOfPoint> contours = new ArrayList<>();
-        List<RotatedRect> boundingRects = new ArrayList<>();
-        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-
-        // find appropriate bounding rectangles
-        for (MatOfPoint contour : contours) {
-            MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
-            RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
-            boundingRects.add(boundingRect);
-        }
-        com.example.mylibrary.RectData dd = null;
-        RotatedRect documentRect = getBestRectByArea(boundingRects);
-        if (documentRect != null) {
-            org.opencv.core.Point rect_points[] = new org.opencv.core.Point[4];
-            documentRect.points(rect_points);
-            for (int i = 0; i < 4; ++i) {
-                Imgproc.line(mat, rect_points[i], rect_points[(i + 1) % 4], new Scalar(0, 255, 0), 5);
-            }
-            dd = new com.example.mylibrary.RectData(documentRect.boundingRect().width, documentRect.boundingRect().height, documentRect.boundingRect().x, documentRect.boundingRect().y);
-        }
-        if (dd != null) {
-
-            SurfaceHolder mHolder = surfaceView.getHolder();
-
-            mHolder.setFormat(PixelFormat.TRANSPARENT);
-            Paint myPaint = new Paint();
-            Paint clearPaint = new Paint();
-            clearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
-
-            myPaint.setColor(Color.rgb(0, 100, 0));
-            myPaint.setStrokeWidth(10);
-            myPaint.setStyle(Paint.Style.STROKE);
-            Canvas canvas = mHolder.lockCanvas();
-            if (canvas != null) {
-                canvas.drawRect(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), clearPaint);
-
-                canvas.drawRect(dd.x, dd.y, dd.w + dd.x, dd.h + dd.y, myPaint);
-                mHolder.unlockCanvasAndPost(canvas);
-            }
-
-        }
-
-    }
-
-    private com.example.mylibrary.RectData findEdges(Bitmap roiBitmap) {
-
-
-        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
-        Utils.bitmapToMat(roiBitmap, mat);
-
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
-
-        // find contours
-        List<MatOfPoint> contours = new ArrayList<>();
-        List<RotatedRect> boundingRects = new ArrayList<>();
-        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-
-        // find appropriate bounding rectangles
-        for (MatOfPoint contour : contours) {
-            MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
-            RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
-            boundingRects.add(boundingRect);
-        }
-        com.example.mylibrary.RectData dd = null;
-        RotatedRect documentRect = getBestRectByArea(boundingRects);
-        if (documentRect != null) {
-            org.opencv.core.Point rect_points[] = new org.opencv.core.Point[4];
-            documentRect.points(rect_points);
-            for (int i = 0; i < 4; ++i) {
-                Imgproc.line(mat, rect_points[i], rect_points[(i + 1) % 4], new Scalar(0, 255, 0), 5);
-            }
-            dd = new com.example.mylibrary.RectData(documentRect.boundingRect().width, documentRect.boundingRect().height, documentRect.boundingRect().x, documentRect.boundingRect().y);
-        }
-
-        return dd;
-    }
-
-    public static RotatedRect getBestRectByArea(List<RotatedRect> boundingRects) {
-        RotatedRect bestRect = null;
-
-        if (boundingRects.size() >= 1) {
-            RotatedRect boundingRect;
-            org.opencv.core.Point[] vertices = new org.opencv.core.Point[4];
-            Rect rect;
-            double maxArea;
-            int ixMaxArea = 0;
-
-            // find best rect by area
-            boundingRect = boundingRects.get(ixMaxArea);
-            boundingRect.points(vertices);
-            rect = Imgproc.boundingRect(new MatOfPoint(vertices));
-            maxArea = rect.area();
-
-            for (int ix = 1; ix < boundingRects.size(); ix++) {
-                boundingRect = boundingRects.get(ix);
-                boundingRect.points(vertices);
-                rect = Imgproc.boundingRect(new MatOfPoint(vertices));
-
-                if (rect.area() > maxArea) {
-                    maxArea = rect.area();
-                    ixMaxArea = ix;
-                }
-            }
-
-            bestRect = boundingRects.get(ixMaxArea);
-        }
-
-
-        return bestRect;
-    }
 
     public void toggleFlashMode(int enable) {
         try {
@@ -1422,23 +1273,6 @@ public class Camera2APIActivity extends AppCompatActivity
             e.printStackTrace();
         }
     }
-//
-//    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-//        super.onTouchEvent(event);
-//        //View.performClick();
-//        try {
-//            if(mTextureView.getWidth()>=event.getX() && mTextureView.getHeight()>=event.getY()) {
-//                setFocusArea(event.getX(), event.getY());
-//            }
-//            else{
-//                Log.e(TAG, "onTouchEvent: " );
-//            }
-//        } catch (CameraAccessException e) {
-//            e.printStackTrace();
-//        }
-//        return false;
-//    }
 
     private void setFocusArea(float focus_point_x, float focus_point_y) throws CameraAccessException {
 
@@ -1569,9 +1403,205 @@ public class Camera2APIActivity extends AppCompatActivity
             return aeState != null && aeState >= 1;
         }
 
+
+
+    private void drawRectangle(Bitmap roiBitmap) {
+
+        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
+        Utils.bitmapToMat(roiBitmap, mat);
+
+        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
+
+        // find contours
+        List<MatOfPoint> contours = new ArrayList<>();
+        List<RotatedRect> boundingRects = new ArrayList<>();
+        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        // find appropriate bounding rectangles
+        for (MatOfPoint contour : contours) {
+            MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
+            RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
+            boundingRects.add(boundingRect);
+        }
+        com.example.mylibrary.RectData dd = null;
+        RotatedRect documentRect = getBestRectByArea(boundingRects);
+        if (documentRect != null) {
+            org.opencv.core.Point rect_points[] = new org.opencv.core.Point[4];
+            documentRect.points(rect_points);
+            for (int i = 0; i < 4; ++i) {
+                Imgproc.line(mat, rect_points[i], rect_points[(i + 1) % 4], new Scalar(0, 255, 0), 5);
+            }
+            dd = new com.example.mylibrary.RectData(documentRect.boundingRect().width, documentRect.boundingRect().height, documentRect.boundingRect().x, documentRect.boundingRect().y);
+        }
+        if (dd != null) {
+
+            SurfaceHolder mHolder = surfaceView.getHolder();
+
+            mHolder.setFormat(PixelFormat.TRANSPARENT);
+            Paint myPaint = new Paint();
+            Paint clearPaint = new Paint();
+            clearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+
+            myPaint.setColor(Color.rgb(0, 100, 0));
+            myPaint.setStrokeWidth(10);
+            myPaint.setStyle(Paint.Style.STROKE);
+            Canvas canvas = mHolder.lockCanvas();
+            if (canvas != null) {
+                canvas.drawRect(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), clearPaint);
+
+                canvas.drawRect(dd.x, dd.y, dd.w + dd.x, dd.h + dd.y, myPaint);
+                mHolder.unlockCanvasAndPost(canvas);
+            }
+
+        }
+
+    }
+
+    private com.example.mylibrary.RectData findEdges(Bitmap roiBitmap) {
+
+
+        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
+        Utils.bitmapToMat(roiBitmap, mat);
+
+        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
+
+        // find contours
+        List<MatOfPoint> contours = new ArrayList<>();
+        List<RotatedRect> boundingRects = new ArrayList<>();
+        Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        // find appropriate bounding rectangles
+        for (MatOfPoint contour : contours) {
+            MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
+            RotatedRect boundingRect = Imgproc.minAreaRect(areaPoints);
+            boundingRects.add(boundingRect);
+        }
+        com.example.mylibrary.RectData dd = null;
+        RotatedRect documentRect = getBestRectByArea(boundingRects);
+        if (documentRect != null) {
+            org.opencv.core.Point rect_points[] = new org.opencv.core.Point[4];
+            documentRect.points(rect_points);
+            for (int i = 0; i < 4; ++i) {
+                Imgproc.line(mat, rect_points[i], rect_points[(i + 1) % 4], new Scalar(0, 255, 0), 5);
+            }
+            dd = new com.example.mylibrary.RectData(documentRect.boundingRect().width, documentRect.boundingRect().height, documentRect.boundingRect().x, documentRect.boundingRect().y);
+        }
+
+        return dd;
+    }
+
+    public static RotatedRect getBestRectByArea(List<RotatedRect> boundingRects) {
+        RotatedRect bestRect = null;
+
+        if (boundingRects.size() >= 1) {
+            RotatedRect boundingRect;
+            org.opencv.core.Point[] vertices = new org.opencv.core.Point[4];
+            Rect rect;
+            double maxArea;
+            int ixMaxArea = 0;
+
+            // find best rect by area
+            boundingRect = boundingRects.get(ixMaxArea);
+            boundingRect.points(vertices);
+            rect = Imgproc.boundingRect(new MatOfPoint(vertices));
+            maxArea = rect.area();
+
+            for (int ix = 1; ix < boundingRects.size(); ix++) {
+                boundingRect = boundingRects.get(ix);
+                boundingRect.points(vertices);
+                rect = Imgproc.boundingRect(new MatOfPoint(vertices));
+
+                if (rect.area() > maxArea) {
+                    maxArea = rect.area();
+                    ixMaxArea = ix;
+                }
+            }
+
+            bestRect = boundingRects.get(ixMaxArea);
+        }
+
+
+        return bestRect;
+    }
+
+
+
+
     @Override
     public void onBackPressed() {
         super.onBackPressed();
         finish();
     }
+
+
+  private void  saveImageInTemprory(Image image){
+
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+                Log.e(TAG, "onImageAvailable"+bytes.length );
+                com.example.mylibrary.RectData rectData = null;
+                if(edgeDetection) {
+                    Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+                    float degrees = 90; //rotation degree
+                    Matrix matrix = new Matrix();
+                    matrix.setRotate(degrees);
+                    Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
+
+                    Utils.matToBitmap(m, roiBitmap);
+
+
+                    roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
+
+
+                    rectData = findEdges(roiBitmap);
+                }
+                String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
+
+                Log.e(TAG, "saveToInternalStorage: " + fileName);
+
+                File file = new File(getApplicationContext().getCacheDir(), "shr.jpg");
+                FileOutputStream output = null;
+                try {
+                    output = new FileOutputStream(file);
+                    output.write(bytes);
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    image.close();
+                    if (null != output) {
+                        try {
+                            output.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+
+
+                // Intent intent = new Intent(Camera2APIActivity.this, CropImageActivity.class);
+                Intent intent = new Intent();
+                intent.putExtra("filename", file.toURI().toString());
+                if(edgeDetection) {
+                    if(rectData!=null){
+                        intent.putExtra("x", rectData.x);
+                        intent.putExtra("y", rectData.y);
+                        intent.putExtra("w", rectData.w);
+                        intent.putExtra("h", rectData.h);
+                        intent.putExtra("edgeDetection", true);
+                    }
+                    else{
+                        intent.putExtra("edgeDetection", false);
+                    }
+
+                }
+                setResult(101, intent);
+
+                finish();
+}
+
+
 }
