@@ -112,6 +112,9 @@ public class PickFromGalleryActivity extends AppCompatActivity {
 
 
         }
+        else{
+            finish();
+        }
 
     }
 
