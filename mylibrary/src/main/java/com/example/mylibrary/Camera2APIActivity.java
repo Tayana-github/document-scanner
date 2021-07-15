@@ -1103,8 +1103,7 @@ public class Camera2APIActivity extends AppCompatActivity
                 else{
                     intent.putExtra("edgeDetection", false);
                 }
-                // intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                //intent.putExtra("filepath",path);
+
             }
             setResult(101, intent);
 

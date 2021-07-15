@@ -21,7 +21,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 
-import com.example.shravanlibrary.RealPathUtil;
+
 
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
@@ -83,8 +83,8 @@ public class PickFromGalleryActivity extends AppCompatActivity {
               ) {
             try {
                 Intent intent = new Intent();
-                Log.e(TAG, "onActivityResult: "+ RealPathUtil.getRealPath(getApplicationContext(),data.getData() ));
-                intent.putExtra("filename",getRealPathFromURI(this,data.getData()));
+                Log.e(TAG, "onActivityResult: "+ RealPathUtil.getPath(getApplicationContext(),data.getData() ));
+                intent.putExtra("filename",RealPathUtil.getPath(getApplicationContext(),data.getData()));
 
                 if(edgeDetection) {
                     RectData rectData = findEdges(data.getData());
@@ -234,28 +234,5 @@ public class PickFromGalleryActivity extends AppCompatActivity {
     }
 
 
-    public static String getRealPathFromURI(Context context, Uri contentUri){
-        String filePath = "";
-        String wholeID = DocumentsContract.getDocumentId(contentUri);
-
-        // Split at colon, use second item in the array
-        String id = wholeID.split(":")[1];
-
-        String[] column = { MediaStore.Images.Media.DATA };
-
-        // where id is equal to
-        String sel = MediaStore.Images.Media._ID + "=?";
-
-        Cursor cursor = context.getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                column, sel, new String[]{ id }, null);
-
-        int columnIndex = cursor.getColumnIndex(column[0]);
-
-        if (cursor.moveToFirst()) {
-            filePath = cursor.getString(columnIndex);
-        }
-        cursor.close();
-        return filePath;
-    }
 
     }

@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("targetHeight", 720);
         intent.putExtra("targetWidth", 1080);
 
-        intent.putExtra("edgeDetection", true);
+        intent.putExtra("edgeDetection", false);
         startActivityForResult(intent, 2);
         //finish();
     }
