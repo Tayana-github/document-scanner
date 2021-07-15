@@ -21,6 +21,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 
+import com.example.shravanlibrary.RealPathUtil;
+
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.CvType;
@@ -81,7 +83,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
               ) {
             try {
                 Intent intent = new Intent();
-                Log.e(TAG, "onActivityResult: "+getRealPathFromURI(getApplicationContext(),data.getData() ));
+                Log.e(TAG, "onActivityResult: "+ RealPathUtil.getRealPath(getApplicationContext(),data.getData() ));
                 intent.putExtra("filename",getRealPathFromURI(this,data.getData()));
 
                 if(edgeDetection) {

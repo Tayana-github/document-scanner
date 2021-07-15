@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Intent intent = new Intent(MainActivity.this, com.example.mylibrary.MainActivity.class);
         //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-        intent.putExtra("sourceType", 1);
+        intent.putExtra("sourceType", 0);
         intent.putExtra("CROP_ENABLE", true);
         intent.putExtra("targetHeight", 720);
         intent.putExtra("targetWidth", 1080);
