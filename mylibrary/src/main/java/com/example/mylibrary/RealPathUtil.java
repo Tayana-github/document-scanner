@@ -42,16 +42,20 @@ public class RealPathUtil {
         // DocumentProvider
         if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
-            if (isExternalStorageDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                String fullPath = getPathFromExtSD(split);
-                if (fullPath != "") {
-                    return fullPath;
+             if (isExternalStorageDocument(uri)) {
+                String docId = DocumentsContract.getDocumentId(uri);
+                String[] split = docId.split(":");
+                String type = split[0];
+                // This is for checking Main Memory
+                if ("primary".equals(type)) {
+                    if (split.length > 1) {
+                        return Environment.getExternalStorageDirectory().toString();
+                    } else {
+                        return Environment.getExternalStorageDirectory().toString();
+                    }
+                    // This is for checking SD Card
                 } else {
-                    return null;
+                    return "storage" + "/" + docId.replace(":", "/");
                 }
             }
 
@@ -64,6 +68,8 @@ public class RealPathUtil {
                         cursor = context.getContentResolver().query(uri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null);
                         if (cursor != null && cursor.moveToFirst()) {
                             String fileName = cursor.getString(0);
+
+                            Log.e("dfsfgg", "getPath: "+uri.getPath()+cursor.getCount() );
                             String path = Environment.getExternalStorageDirectory().toString() + "/Download/" + fileName;
                             if (!TextUtils.isEmpty(path)) {
                                 return path;

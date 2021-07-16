@@ -34,9 +34,14 @@ import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PickFromGalleryActivity extends AppCompatActivity {
 
@@ -83,9 +88,10 @@ public class PickFromGalleryActivity extends AppCompatActivity {
               ) {
             try {
                 Intent intent = new Intent();
-                Log.e(TAG, "onActivityResult: "+ RealPathUtil.getPath(getApplicationContext(),data.getData() ));
-                intent.putExtra("filename",RealPathUtil.getPath(getApplicationContext(),data.getData()));
 
+
+
+                intent.putExtra("filename",data.getData().toString() );
                 if(edgeDetection) {
                     RectData rectData = findEdges(data.getData());
 

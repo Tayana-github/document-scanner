@@ -6,7 +6,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.ImageDecoder;
 
@@ -22,6 +21,7 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -115,7 +115,11 @@ public class MainActivity extends AppCompatActivity {
             if (CROP_ENABLE) {
                 Intent intent = new Intent(this, CropImageActivity.class);
                 intent.putExtra("edgeDetection", edgeDetection);
-                intent.putExtra("filename", Uri.fromFile(new File(filepath)).toString());
+                try {
+                    intent.putExtra("filename", storeIntemp(getApplicationContext(),Uri.parse(filepath)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 if(edgeDetection) {
 
                     intent.putExtra("x", extras.getInt("x"));
@@ -224,17 +228,44 @@ public class MainActivity extends AppCompatActivity {
 
         if(imageUri!=null)
         {
-            return RealPathUtil.getPath(getApplicationContext(),imageUri);
+            return imageUri.toString();
         }
         else {
             Log.e(TAG, "saveImageToStorage: "+image.getAbsolutePath());
 
-            return image.getAbsolutePath();
+            return image.toURI().toString();
         }
 
 
     }
+   private String storeIntemp(Context context,Uri  uri) throws IOException {
+        Bitmap bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), uri);
 
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        byte[] byteArray = stream.toByteArray();
+        bitmap.recycle();
+        File file = new File(getApplicationContext().getCacheDir(), "temp.jpg");
+        FileOutputStream output = null;
+        try {
+            output = new FileOutputStream(file);
+            output.write(byteArray);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+
+            if (null != output) {
+                try {
+                    output.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return  file.toURI().toString();
+
+    }
 
 
 }

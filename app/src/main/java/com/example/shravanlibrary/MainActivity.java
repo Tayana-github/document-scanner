@@ -2,11 +2,20 @@ package com.example.shravanlibrary;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.content.Intent;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 
+import android.util.Base64;
 import android.util.Log;
+
+import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -39,7 +48,17 @@ public class MainActivity extends AppCompatActivity {
 
 
             Bundle extras = data.getExtras();
-            Log.e(TAG, "onActivityResult: " + extras.getString("filepath"));
+            Log.e(TAG, "onActivityResult: 12 " + extras.getString("filepath"));
+
+            try {
+
+
+                Log.e(TAG, "onActivityResult: "+getFileToByte(getApplicationContext(),Uri.parse(extras.getString("filepath"))) );
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                Log.e(TAG, "onActivityResult: "+e );
+            }
+
 
 
         }else{
@@ -47,7 +66,27 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
+    public static String getFileToByte(Context context,Uri uri) throws FileNotFoundException {
+        final InputStream imageStream;
+        imageStream = context.getContentResolver().openInputStream(uri);
+        final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
 
+        ByteArrayOutputStream bos = null;
+        byte[] bt = null;
+        String encodeString = null;
+        try{
+
+            bos = new ByteArrayOutputStream();
+            selectedImage.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            bt = bos.toByteArray();
+            encodeString = Base64.encodeToString(bt, Base64.DEFAULT);
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+        encodeString = encodeString.replaceAll("(\\r|\\n|\\t)", "");
+        return encodeString;
+    }
 
 
 }
