@@ -1,28 +1,20 @@
 package com.example.mylibrary;
 
 import android.Manifest;
-
 import android.content.Intent;
 import android.content.pm.PackageManager;
-
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-
 import android.util.Log;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-
 import com.theartofdev.edmodo.cropper.CropImage;
-
-
 
 
 public class CropImageActivity extends AppCompatActivity {
     private static final String TAG = "CropImageActivity";
     String value;
-
     RectData rectData;
     private static boolean edgeDetection = false;
 
@@ -31,9 +23,6 @@ public class CropImageActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.crop_image_view);
-
-
-
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
              value = extras.getString("filename");
@@ -41,7 +30,7 @@ public class CropImageActivity extends AppCompatActivity {
             if(edgeDetection) {
                 rectData = new com.example.mylibrary.RectData(extras.getInt("w"), extras.getInt("h"), extras.getInt("x"), extras.getInt("y"));
             }
-            //The key argument here must match that used in the other activity
+
         }
 
 

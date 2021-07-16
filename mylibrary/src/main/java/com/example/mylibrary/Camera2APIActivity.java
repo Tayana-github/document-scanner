@@ -50,9 +50,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
-import android.widget.Switch;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
@@ -61,9 +59,9 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
@@ -74,7 +72,6 @@ import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -97,7 +94,7 @@ public class Camera2APIActivity extends AppCompatActivity
     private static boolean edgeDetection = false;
     static {
         if (!OpenCVLoader.initDebug()) {
-            Log.e("Camera2BasicFragment", "opencv is not loaded ");
+            Log.e("Camera2BasicFragment", "opencv is loaded ");
         }
     }
 
@@ -368,7 +365,7 @@ public class Camera2APIActivity extends AppCompatActivity
         if (shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
             new ConfirmationDialog().show(getSupportFragmentManager(), FRAGMENT_DIALOG);
         } else {
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            requestPermissions(new String[]{Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQUEST_CAMERA_PERMISSION);
         }
     }
 
@@ -376,7 +373,7 @@ public class Camera2APIActivity extends AppCompatActivity
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
-            if (grantResults.length != 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.length < 1 || grantResults[0] != PackageManager.PERMISSION_GRANTED || grantResults[1] != PackageManager.PERMISSION_GRANTED) {
         finish();
             }
         } else {
@@ -411,12 +408,12 @@ public class Camera2APIActivity extends AppCompatActivity
             @Override
             public void onSurfaceTextureUpdated(SurfaceTexture texture) {
 
-                Bitmap frame = Bitmap.createBitmap(mTextureView.getWidth(), mTextureView.getHeight(), Bitmap.Config.ARGB_8888);
-                // Log.e(TAG, "onSurfaceTextureUpdated: "+mTextureView.mRatioWidth+"   "+ mTextureView.mRatioHeight);
 
-                mTextureView.getBitmap(frame);
+                Mat mat=new Mat(mTextureView.getWidth(), mTextureView.getHeight(), CvType.CV_8UC3);
+                        Utils.bitmapToMat(mTextureView.getBitmap(), mat);
+
                 if( edgeDetection)
-                    drawRectangle(frame);
+                    drawRectangle(mat);
 
             }
 
@@ -681,6 +678,7 @@ public class Camera2APIActivity extends AppCompatActivity
     private void openCamera(int width, int height) {
 
         if (ContextCompat.checkSelfPermission(Camera2APIActivity.this, Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED || ContextCompat.checkSelfPermission(Camera2APIActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             requestCameraPermission();
             return;
@@ -852,10 +850,9 @@ public class Camera2APIActivity extends AppCompatActivity
      * Initiate a still image capture.
      */
     private void takePicture() {
-        // spinner.setVisibility(View.VISIBLE);
+
         lockFocus();
-        //runPrecaptureSequence();
-        //captureStillPicture();
+
     }
 
     /**
@@ -1049,21 +1046,13 @@ public class Camera2APIActivity extends AppCompatActivity
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
             Log.e(TAG, "onImageAvailable"+bytes.length );
+
             com.example.mylibrary.RectData rectData = null;
             if(edgeDetection) {
-                Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-                float degrees = 90; //rotation degree
-                Matrix matrix = new Matrix();
-                matrix.setRotate(degrees);
-                Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
+                Mat mat = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+                Core.rotate(mat,mat, Core.ROTATE_90_CLOCKWISE);
 
-                Utils.matToBitmap(m, roiBitmap);
-
-
-                roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
-
-
-                rectData = findEdges(roiBitmap);
+                rectData = findEdges(mat);
             }
             String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
 
@@ -1404,10 +1393,7 @@ public class Camera2APIActivity extends AppCompatActivity
 
 
 
-    private void drawRectangle(Bitmap roiBitmap) {
-
-        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
-        Utils.bitmapToMat(roiBitmap, mat);
+    private void drawRectangle(Mat mat) {
 
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
         Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
@@ -1457,11 +1443,10 @@ public class Camera2APIActivity extends AppCompatActivity
 
     }
 
-    private com.example.mylibrary.RectData findEdges(Bitmap roiBitmap) {
+    private com.example.mylibrary.RectData findEdges(Mat mat) {
 
 
-        Mat mat = new Mat(roiBitmap.getHeight(), roiBitmap.getWidth(), CvType.CV_8UC3);
-        Utils.bitmapToMat(roiBitmap, mat);
+
 
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
         Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
@@ -1555,7 +1540,7 @@ public class Camera2APIActivity extends AppCompatActivity
                     roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
 
 
-                    rectData = findEdges(roiBitmap);
+                   // rectData = findEdges(roiBitmap);
                 }
                 String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
 

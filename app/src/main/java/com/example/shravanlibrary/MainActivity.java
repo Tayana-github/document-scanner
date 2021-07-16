@@ -1,18 +1,14 @@
 package com.example.shravanlibrary;
 
 import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Context;
 import android.content.Intent;
-
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-
 import android.util.Base64;
 import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -27,15 +23,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Intent intent = new Intent(MainActivity.this, com.example.mylibrary.MainActivity.class);
-        //intent.setFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
+
         intent.putExtra("sourceType", 0);
         intent.putExtra("CROP_ENABLE", true);
         intent.putExtra("targetHeight", 720);
         intent.putExtra("targetWidth", 1080);
-
-        intent.putExtra("edgeDetection", false);
+        intent.putExtra("edgeDetection", true);
         startActivityForResult(intent, 2);
-        //finish();
+
     }
 
     @Override
