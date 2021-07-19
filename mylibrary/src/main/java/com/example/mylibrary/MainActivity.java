@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
             edgeDetection = extras.getBoolean("edgeDetection");
             Log.e(TAG, "onCreate: "+edgeDetection );
         }
-        storageControler = new StorageControler(getApplicationContext(), "MainActivity");
+        storageControler = new StorageControler(getApplicationContext(), "MainActivity",targetWidth,targetHeight,quality);
         storageControler.createTempDir();
         if (sourceType == 1) {
             Intent intent = new Intent(MainActivity.this, com.example.mylibrary.Camera2APIActivity.class);

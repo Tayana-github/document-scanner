@@ -41,6 +41,14 @@ public class StorageControler {
         this.TAG = tag;
 
     }
+    public StorageControler(Context context, String tag,int targetWidth, int targetHeight,int quality) {
+        this.context = context;
+        this.TAG = tag;
+        this.targetWidth=targetWidth;
+        this.targetHeight=targetHeight;
+        this.quality=quality;
+
+    }
 
     public void createTempDir() {
         File sd = context.getCacheDir();
@@ -104,7 +112,7 @@ public class StorageControler {
             height = bitmap.getHeight() * quality / 100;
 
         }
-
+        Log.e(TAG, "saveImageToStorage: "+width+" "+height );
         bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
         String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
         OutputStream fos;
@@ -166,7 +174,7 @@ public class StorageControler {
                 height = bitmap.getHeight() * quality / 100;
 
             }
-
+            Log.e(TAG, "saveImageToStorage: "+width+" "+height );
             bitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
             String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
             OutputStream fos;
