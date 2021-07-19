@@ -307,13 +307,13 @@ public class Camera2APIActivity extends AppCompatActivity
         mTextureView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if(mState!=0) {
-                    try {
-                        setFocusArea(event.getX(), event.getY());
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
+//                if(mState==0&& v.getId()==R.id.texture||true) {
+//                    try {
+//                        setFocusArea(event.getX(), event.getY());
+//                    } catch (CameraAccessException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
 
                 return false;
             }
@@ -1256,7 +1256,7 @@ public class Camera2APIActivity extends AppCompatActivity
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
                     break;
                 case 2:
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
                     break;
                 case 1:
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
@@ -1305,42 +1305,42 @@ public class Camera2APIActivity extends AppCompatActivity
                     halfTouchLength * 2,
                     MeteringRectangle.METERING_WEIGHT_MAX - 1);
         }
-
-        CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-
-            @Override
-            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-                super.onCaptureCompleted(session, request, result);
-
-                mManualFocusEngaged = false;
-
-
-                if (true) { // previously getTag == "Focus_tag"
-                    //the focus trigger is ecomplete -
-                    //resume repeating (preview surface will get frames), clear AF trigger
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);// As documentation says AF_trigger can be null in some device
-                    try {
-                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, mBackgroundHandler);
-                    } catch (CameraAccessException e) {
-                        // error handling
-                    }
-                }
-            }
-
-            @Override
-            public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
-                super.onCaptureFailed(session, request, failure);
-                mManualFocusEngaged = false;
-            }
-
-        };
-
-        mCaptureSession.stopRepeating(); // Destroy current session
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-        mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler); //Set all settings for once
+//
+//        CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+//
+//            @Override
+//            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+//                super.onCaptureCompleted(session, request, result);
+//
+//                mManualFocusEngaged = false;
+//
+//
+//                if (true) { // previously getTag == "Focus_tag"
+//                    //the focus trigger is ecomplete -
+//                    //resume repeating (preview surface will get frames), clear AF trigger
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);// As documentation says AF_trigger can be null in some device
+//                    try {
+//                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, mBackgroundHandler);
+//                    } catch (CameraAccessException e) {
+//                        // error handling
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
+//                super.onCaptureFailed(session, request, failure);
+//                mManualFocusEngaged = false;
+//            }
+//
+//        };
+//
+//        mCaptureSession.stopRepeating(); // Destroy current session
+//        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+//        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+//        mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler); //Set all settings for once
 
         if (isMeteringAreaAESupported()) {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, new MeteringRectangle[]{focusArea});
@@ -1444,7 +1444,7 @@ public class Camera2APIActivity extends AppCompatActivity
             if (canvas != null) {
                 canvas.drawRect(0, 0, surfaceView.getWidth(), surfaceView.getHeight(), clearPaint);
 
-                canvas.drawRect(dd.x, dd.y, dd.w + dd.x, dd.h + dd.y, myPaint);
+                canvas.drawRect(dd.x, dd.y, dd.w + dd.x, (dd.h + dd.y)<=mTextureView.getHeight()?dd.h + dd.y:mTextureView.getHeight(), myPaint);
                 mHolder.unlockCanvasAndPost(canvas);
             }
 
