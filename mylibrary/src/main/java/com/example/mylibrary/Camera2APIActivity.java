@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ImageFormat;
@@ -277,19 +278,26 @@ public class Camera2APIActivity extends AppCompatActivity
 
    private ImageButton flashButton;
     private com.google.android.material.floatingactionbutton.FloatingActionButton takepictureButton;
+    private static boolean CROP_ENABLE = false;
+    private StorageControler storageControler;
+
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera2api);
-
+        storageControler = new StorageControler(getApplicationContext(), "Camera2Activity");
        // FLASH_MODE=3;
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            edgeDetection=  extras.getBoolean("edgeDetection");
-
+            CROP_ENABLE = extras.getBoolean("CROP_ENABLE");
+            if(CROP_ENABLE) {
+                edgeDetection = extras.getBoolean("edgeDetection");
+            }
             //The key argument here must match that used in the other activity
         }
+        Log.e(TAG, "onCreate: "+edgeDetection );
         surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
+       // backgroundDraw =new BackgroundDraw(surfaceView);
         flashButton = findViewById(R.id.flash);
         flashButton.setOnClickListener(this);
         surfaceView.setZOrderOnTop(true);
@@ -408,12 +416,24 @@ public class Camera2APIActivity extends AppCompatActivity
             @Override
             public void onSurfaceTextureUpdated(SurfaceTexture texture) {
 
+                if( edgeDetection) {
+                    Mat mat = new Mat(mTextureView.getWidth(), mTextureView.getHeight(), CvType.CV_8UC3);
+                    Utils.bitmapToMat(mTextureView.getBitmap(), mat);
 
-                Mat mat=new Mat(mTextureView.getWidth(), mTextureView.getHeight(), CvType.CV_8UC3);
-                        Utils.bitmapToMat(mTextureView.getBitmap(), mat);
 
-                if( edgeDetection)
-                    drawRectangle(mat);
+                  new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    drawRectangle(mat);
+                                }
+                            });
+                        }
+                    }).start();
+                   // drawRectangle(mat);
+                }
 
             }
 
@@ -457,8 +477,10 @@ public class Camera2APIActivity extends AppCompatActivity
             @Override
             public void onImageAvailable(ImageReader reader) {
                 Log.e(TAG, "onImageAvailable: ");
+
                  mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage()));
-                 //saveImageInTemprory(reader.acquireNextImage());
+
+
 
 
 
@@ -538,7 +560,7 @@ public class Camera2APIActivity extends AppCompatActivity
                 //  Log.e(TAG, "onImageAvailable: " + mTextureView.getBitmap());
 
                 process(result);
-                // new CustomTask().execute((Void[])null);
+
 
 
             }
@@ -1048,39 +1070,28 @@ public class Camera2APIActivity extends AppCompatActivity
             Log.e(TAG, "onImageAvailable"+bytes.length );
 
             com.example.mylibrary.RectData rectData = null;
-            if(edgeDetection) {
-                Mat mat = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-                Core.rotate(mat,mat, Core.ROTATE_90_CLOCKWISE);
+            Bitmap bitmap = null;
+           String filepath=null;
+            if(CROP_ENABLE) {
+                if (edgeDetection) {
+                    Mat mat = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
+                    Core.rotate(mat, mat, Core.ROTATE_90_CLOCKWISE);
+                    rectData = findEdges(mat);
+                    mat.release();
 
-                rectData = findEdges(mat);
-            }
-            String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
-
-            Log.e(TAG, "saveToInternalStorage: " + fileName);
-
-            File file = new File(getApplicationContext().getCacheDir(), "temp.jpg");
-            FileOutputStream output = null;
-            try {
-                output = new FileOutputStream(file);
-                output.write(bytes);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                mImage.close();
-                if (null != output) {
-                    try {
-                        output.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
-            }
+                filepath=storageControler.storeInTemp(bytes);
 
+            }
+            else{
+                    bitmap = BitmapFactory.decodeByteArray(bytes , 0, bytes .length);
+                    filepath=storageControler.saveImageToStorage(bitmap);
+
+            }
 
             // Intent intent = new Intent(Camera2APIActivity.this, CropImageActivity.class);
             Intent intent = new Intent();
-            intent.putExtra("filename", file.toURI().toString());
+            intent.putExtra("filename", filepath);
             if(edgeDetection) {
                 if(rectData!=null){
                     intent.putExtra("x", rectData.x);
@@ -1095,7 +1106,7 @@ public class Camera2APIActivity extends AppCompatActivity
 
             }
             setResult(101, intent);
-
+            Log.e(TAG, "saveImageInTemprory: 123" );
             finish();
 
 
@@ -1428,7 +1439,7 @@ public class Camera2APIActivity extends AppCompatActivity
             Paint clearPaint = new Paint();
             clearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
 
-            myPaint.setColor(Color.rgb(0, 100, 0));
+            myPaint.setColor(Color.rgb(0, 180, 0));
             myPaint.setStrokeWidth(10);
             myPaint.setStyle(Paint.Style.STROKE);
             Canvas canvas = mHolder.lockCanvas();
@@ -1440,14 +1451,10 @@ public class Camera2APIActivity extends AppCompatActivity
             }
 
         }
-
+mat.release();
     }
 
     private com.example.mylibrary.RectData findEdges(Mat mat) {
-
-
-
-
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
         Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
 
@@ -1472,7 +1479,7 @@ public class Camera2APIActivity extends AppCompatActivity
             }
             dd = new com.example.mylibrary.RectData(documentRect.boundingRect().width, documentRect.boundingRect().height, documentRect.boundingRect().x, documentRect.boundingRect().y);
         }
-
+mat.release();
         return dd;
     }
 
@@ -1519,73 +1526,6 @@ public class Camera2APIActivity extends AppCompatActivity
         finish();
     }
 
-
-  private void  saveImageInTemprory(Image image){
-
-                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
-                byte[] bytes = new byte[buffer.remaining()];
-                buffer.get(bytes);
-                Log.e(TAG, "onImageAvailable"+bytes.length );
-                com.example.mylibrary.RectData rectData = null;
-                if(edgeDetection) {
-                    Mat m = Imgcodecs.imdecode(new MatOfByte(bytes), Imgcodecs.CV_LOAD_IMAGE_UNCHANGED);
-                    float degrees = 90; //rotation degree
-                    Matrix matrix = new Matrix();
-                    matrix.setRotate(degrees);
-                    Bitmap roiBitmap = Bitmap.createBitmap(m.width(), m.height(), Bitmap.Config.ARGB_8888);
-
-                    Utils.matToBitmap(m, roiBitmap);
-
-
-                    roiBitmap = Bitmap.createBitmap(roiBitmap, 0, 0, roiBitmap.getWidth(), roiBitmap.getHeight(), matrix, true);
-
-
-                   // rectData = findEdges(roiBitmap);
-                }
-                String fileName = new SimpleDateFormat("yyMMddHHmmss").format(new Date());
-
-                Log.e(TAG, "saveToInternalStorage: " + fileName);
-
-                File file = new File(getApplicationContext().getCacheDir(), "shr.jpg");
-                FileOutputStream output = null;
-                try {
-                    output = new FileOutputStream(file);
-                    output.write(bytes);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    image.close();
-                    if (null != output) {
-                        try {
-                            output.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-
-                // Intent intent = new Intent(Camera2APIActivity.this, CropImageActivity.class);
-                Intent intent = new Intent();
-                intent.putExtra("filename", file.toURI().toString());
-                if(edgeDetection) {
-                    if(rectData!=null){
-                        intent.putExtra("x", rectData.x);
-                        intent.putExtra("y", rectData.y);
-                        intent.putExtra("w", rectData.w);
-                        intent.putExtra("h", rectData.h);
-                        intent.putExtra("edgeDetection", true);
-                    }
-                    else{
-                        intent.putExtra("edgeDetection", false);
-                    }
-
-                }
-                setResult(101, intent);
-
-                finish();
-}
 
 
 }

@@ -4,9 +4,14 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +20,7 @@ import androidx.exifinterface.media.ExifInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
@@ -32,7 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PickFromGalleryActivity extends AppCompatActivity {
-
+    private HandlerThread mBackgroundThread;
+    private Handler mBackgroundHandler;
     static {
         if (!OpenCVLoader.initDebug()) {
             Log.e("Camera2BasicFragment", "opencv is  loaded ");
@@ -45,13 +52,17 @@ public class PickFromGalleryActivity extends AppCompatActivity {
     private final static int SELECT_PHOTO = 1;
     private static boolean edgeDetection = false;
     private static boolean CROP_ENABLE = false;
-
+    private StorageControler storageControler;
+    static String path;
+    File file;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_pickfromgallery);
         Bundle extras = getIntent().getExtras();
+         file = new File(getApplicationContext().getCacheDir(), "/shravan/temp.jpg");
+        storageControler=new StorageControler(getApplicationContext(),"PickFromGalleryActivity");
         if (extras != null) {
             edgeDetection = extras.getBoolean("edgeDetection");
             CROP_ENABLE = extras.getBoolean("CROP_ENABLE");
@@ -74,6 +85,8 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == SELECT_PICTURE && resultCode == RESULT_OK && data != null
         ) {
+            Log.e(TAG, "onActivityResult: 123454" );
+
             try {
                 Intent intent = new Intent();
 
@@ -81,11 +94,12 @@ public class PickFromGalleryActivity extends AppCompatActivity {
                 intent.putExtra("filename", data.getData().toString());
                 if (CROP_ENABLE) {
 
-                    File file = new File(getApplicationContext().getCacheDir(), "temp.jpg");
-                    intent.putExtra("filename", file.toURI().toString());
-                    if (edgeDetection) {
-                        RectData rectData = findEdges(data.getData(), file);
 
+                    if (edgeDetection) {
+
+
+                        RectData rectData = findEdges(data.getData());
+                        intent.putExtra("filename", path);
                         if (rectData != null) {
                             intent.putExtra("x", rectData.x);
                             intent.putExtra("y", rectData.y);
@@ -104,9 +118,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                Intent intent = new Intent();
-                //intent.putExtra("filename",null);
-                setResult(201, intent);
+
                 finish();
             }
 
@@ -117,35 +129,21 @@ public class PickFromGalleryActivity extends AppCompatActivity {
 
     }
 
-    private RectData findEdges(Uri uri, File file) throws IOException {
+    private RectData findEdges(Uri uri) throws IOException {
 
         int a = getCameraPhotoOrientation(getApplicationContext(), uri);
+        Log.e(TAG, "findEdges: "+getOrientation2(getApplicationContext(),uri) );
         Mat mat = new Mat();
-
-        Utils.bitmapToMat(MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri), mat);
-
+        Utils.bitmapToMat(MediaStore.Images.Media.getBitmap(
+                this.getContentResolver(),
+                uri), mat);
+        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB);
         mat = rotateBitmap(mat, a);
         MatOfByte matOfByte = new MatOfByte();
-        Imgcodecs.imencode(".png", mat, matOfByte);
+        Imgcodecs.imencode(".jpg", mat, matOfByte);
         byte[] byteArray = matOfByte.toArray();
-
-        FileOutputStream output = null;
-        try {
-            output = new FileOutputStream(file);
-            output.write(byteArray);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-
-            if (null != output) {
-                try {
-                    output.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        matOfByte.release();
+        path=storageControler.storeInTemp(byteArray);
         Log.e(TAG, "rotateBitmap: " + a);
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2GRAY);
         Imgproc.threshold(mat, mat, 146, 250, Imgproc.THRESH_BINARY);
@@ -154,7 +152,7 @@ public class PickFromGalleryActivity extends AppCompatActivity {
         List<MatOfPoint> contours = new ArrayList<>();
         List<RotatedRect> boundingRects = new ArrayList<>();
         Imgproc.findContours(mat, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-
+        mat.release();
         // find appropriate bounding rectangles
         for (MatOfPoint contour : contours) {
             MatOfPoint2f areaPoints = new MatOfPoint2f(contour.toArray());
@@ -281,6 +279,20 @@ public class PickFromGalleryActivity extends AppCompatActivity {
 
         return mat;
     }
+    public static int getOrientation2(Context context, Uri photoUri) {
+        Cursor cursor = context.getContentResolver().query(photoUri,
+                new String[] { MediaStore.Images.ImageColumns.ORIENTATION },
+                null, null, null);
 
+        try {
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0);
+            } else {
+                return -1;
+            }
+        } finally {
+            cursor.close();
+        }
+    }
 
 }

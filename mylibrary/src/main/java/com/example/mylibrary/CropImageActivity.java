@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import com.theartofdev.edmodo.cropper.CropImage;
 
+import java.io.File;
+
 
 public class CropImageActivity extends AppCompatActivity {
     private static final String TAG = "CropImageActivity";
@@ -21,6 +23,7 @@ public class CropImageActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.e(TAG, "onActivityResult: 123454" );
         super.onCreate(savedInstanceState);
         setContentView(R.layout.crop_image_view);
         Bundle extras = getIntent().getExtras();
@@ -62,6 +65,9 @@ public class CropImageActivity extends AppCompatActivity {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+
+        File file=new File(value);;
+        file.delete();
         if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
             CropImage.ActivityResult result = CropImage.getActivityResult(data);
             if (resultCode == RESULT_OK) {

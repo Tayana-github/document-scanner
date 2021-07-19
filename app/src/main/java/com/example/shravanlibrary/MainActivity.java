@@ -9,9 +9,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
+
+import com.example.mylibrary.StorageControler;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+
 
 
 public class MainActivity extends AppCompatActivity {
@@ -28,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("CROP_ENABLE", true);
         intent.putExtra("targetHeight", 720);
         intent.putExtra("targetWidth", 1080);
+        intent.putExtra("quality", 50);
         intent.putExtra("edgeDetection", true);
         startActivityForResult(intent, 2);
 
@@ -42,46 +47,24 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == 401) {
 
 
-            Bundle extras = data.getExtras();
-            Log.e(TAG, "onActivityResult: 12 " + extras.getString("filepath"));
-
-            try {
 
 
-                Log.e(TAG, "onActivityResult: "+getFileToByte(getApplicationContext(),Uri.parse(extras.getString("filepath"))) );
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                Log.e(TAG, "onActivityResult: "+e );
+            if(data.hasExtra("filepath")) {
+                Bundle extras = data.getExtras();
+
+
+
+                    Log.e(TAG, "onActivityResult: decode" );
+
+                    Log.e(TAG, "onActivityResult: " + StorageControler.getFileToByte(getApplicationContext(), Uri.parse(extras.getString("filepath"))));
+
+
             }
 
-
-
         }else{
-           // finish();
+           finish();
         }
 
     }
-    public static String getFileToByte(Context context,Uri uri) throws FileNotFoundException {
-        final InputStream imageStream;
-        imageStream = context.getContentResolver().openInputStream(uri);
-        final Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-
-        ByteArrayOutputStream bos = null;
-        byte[] bt = null;
-        String encodeString = null;
-        try{
-
-            bos = new ByteArrayOutputStream();
-            selectedImage.compress(Bitmap.CompressFormat.JPEG, 100, bos);
-            bt = bos.toByteArray();
-            encodeString = Base64.encodeToString(bt, Base64.DEFAULT);
-        }
-        catch (Exception e){
-            e.printStackTrace();
-        }
-        encodeString = encodeString.replaceAll("(\\r|\\n|\\t)", "");
-        return encodeString;
-    }
-
 
 }
