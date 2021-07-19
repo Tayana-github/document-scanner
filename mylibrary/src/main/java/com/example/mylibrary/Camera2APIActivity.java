@@ -286,7 +286,6 @@ public class Camera2APIActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera2api);
         storageControler = new StorageControler(getApplicationContext(), "Camera2Activity");
-       // FLASH_MODE=3;
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             CROP_ENABLE = extras.getBoolean("CROP_ENABLE");
@@ -297,7 +296,6 @@ public class Camera2APIActivity extends AppCompatActivity
         }
         Log.e(TAG, "onCreate: "+edgeDetection );
         surfaceView = (SurfaceView) findViewById(R.id.surfaceView);
-       // backgroundDraw =new BackgroundDraw(surfaceView);
         flashButton = findViewById(R.id.flash);
         flashButton.setOnClickListener(this);
         surfaceView.setZOrderOnTop(true);
@@ -1037,7 +1035,7 @@ public class Camera2APIActivity extends AppCompatActivity
               case 1:
                   requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
                   break;
-              default:requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_OFF);
+              default:requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
                   break;
           }
 
