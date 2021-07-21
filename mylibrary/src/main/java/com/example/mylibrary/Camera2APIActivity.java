@@ -87,6 +87,8 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
+import static android.hardware.camera2.CameraCharacteristics.CONTROL_AVAILABLE_SCENE_MODES;
+
 public class Camera2APIActivity extends AppCompatActivity
         implements View.OnClickListener, ActivityCompat.OnRequestPermissionsResultCallback {
 
@@ -107,7 +109,7 @@ public class Camera2APIActivity extends AppCompatActivity
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     private static final int REQUEST_CAMERA_PERMISSION = 1;
     private static final String FRAGMENT_DIALOG = "dialog";
-    private  int FLASH_MODE = 5;
+    private  int FLASH_MODE = 1;
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -307,13 +309,13 @@ public class Camera2APIActivity extends AppCompatActivity
         mTextureView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-//                if(mState==0&& v.getId()==R.id.texture||true) {
-//                    try {
-//                        setFocusArea(event.getX(), event.getY());
-//                    } catch (CameraAccessException e) {
-//                        e.printStackTrace();
-//                    }
-//                }
+                if(mState==0&& v.getId()==R.id.texture) {
+                    try {
+                        setFocusArea(event.getX(), event.getY());
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
+                      }
 
                 return false;
             }
@@ -870,8 +872,14 @@ public class Camera2APIActivity extends AppCompatActivity
      * Initiate a still image capture.
      */
     private void takePicture() {
-
-        lockFocus();
+        Log.e(TAG, "takePicture: "+mManualFocusEngaged );
+        if(mManualFocusEngaged)
+        {
+            captureStillPicture();
+        }
+        else {
+            lockFocus();
+        }
 
     }
 
@@ -881,8 +889,11 @@ public class Camera2APIActivity extends AppCompatActivity
     private void lockFocus() {
         try {
             // This is how to tell the camera to lock focus.
-            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
-                    CameraMetadata.CONTROL_AF_TRIGGER_START);
+
+
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                        CameraMetadata.CONTROL_AF_TRIGGER_START);
+
             // Tell #mCaptureCallback to wait for the lock.
             mState = STATE_WAITING_LOCK;
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback,
@@ -897,8 +908,10 @@ public class Camera2APIActivity extends AppCompatActivity
      * we get a response in {@link #mCaptureCallback} from {@link #lockFocus()}.
      */
     private void runPrecaptureSequence() {
+        Log.e(TAG, "captureStillPicture: 124" );
         try {
             // This is how to tell the camera to trigger.
+            //setAutoFlash(mPreviewRequestBuilder);
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             // Tell #mCaptureCallback to wait for the precapture sequence to be set.
@@ -915,6 +928,7 @@ public class Camera2APIActivity extends AppCompatActivity
      * {@link #mCaptureCallback} from both {@link #lockFocus()}.
      */
     private void captureStillPicture() {
+        Log.e(TAG, "captureStillPicture: 123" );
         try {
             final Activity activity = Camera2APIActivity.this;
             if (null == activity || null == mCameraDevice) {
@@ -926,9 +940,12 @@ public class Camera2APIActivity extends AppCompatActivity
             captureBuilder.addTarget(mImageReader.getSurface());
 
             // Use the same AE and AF modes as the preview.
-            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
-                    CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-            setAutoFlash(captureBuilder);
+            if(!mManualFocusEngaged) {
+                captureBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            }
+
+           setAutoFlash(captureBuilder);
 
 
             // Orientation
@@ -943,7 +960,7 @@ public class Camera2APIActivity extends AppCompatActivity
                                                @NonNull CaptureRequest request,
                                                @NonNull TotalCaptureResult result) {
 
-
+                    //unlockFocus();
                 }
             };
 
@@ -1005,13 +1022,13 @@ public class Camera2APIActivity extends AppCompatActivity
             }
         }
         if (id == R.id.flash) {
-            FLASH_MODE = (FLASH_MODE+1)%3;
+            FLASH_MODE = (FLASH_MODE+1)%2;
             switch(FLASH_MODE){
                 case 0: flashButton.setImageResource(R.drawable.ic_flash_on_foreground);
                 break;
-                case 1: flashButton.setImageResource(R.drawable.ic_flash_auto_foreground);
-                    break;
-                case 2: flashButton.setImageResource(R.drawable.ic_flash_off_foreground);
+//                case 1: flashButton.setImageResource(R.drawable.ic_flash_auto_foreground);
+//                    break;
+                case 1: flashButton.setImageResource(R.drawable.ic_flash_off_foreground);
                     break;
                 default:break;
 
@@ -1025,19 +1042,25 @@ public class Camera2APIActivity extends AppCompatActivity
 
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
-
+            Log.e(TAG, "setAutoFlash: "+CONTROL_AVAILABLE_SCENE_MODES );
             Log.e(TAG, "setAutoFlash: "+FLASH_MODE );
           switch(FLASH_MODE) {
               case 0:
-              requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
-
+                  requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+                  requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_SINGLE);
+                 // requestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT);
               break;
-              case 1:
-                  requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
-                  break;
-              default:requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+//              case 1:
+//                  requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH);
+//                  requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF);
+//                  //requestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT);
+//                  break;
+              default: requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+                  requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF);
+                 // requestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT);
                   break;
           }
+
 
         }
     }
@@ -1249,17 +1272,24 @@ public class Camera2APIActivity extends AppCompatActivity
 
 
     public void toggleFlashMode(int enable) {
+        Log.e(TAG, "toggleFlashMode: "+mFlashSupported);
         try {
-
             switch(enable){
                 case 0:
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
-                    break;
-                case 2:
+                  //  mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_ALWAYS_FLASH);
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+                    mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
+                   // mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT);
                     break;
+//                case 1:
+//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON_AUTO_FLASH);
+//                    mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF);
+//                   // mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO);
+//                    break;
                 case 1:
-                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+                    mPreviewRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_OFF);
+                   // mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_DAYLIGHT);
                     break;
                 default:break;
 
@@ -1273,7 +1303,8 @@ public class Camera2APIActivity extends AppCompatActivity
 
     private void setFocusArea(float focus_point_x, float focus_point_y) throws CameraAccessException {
 
-        if (mCameraId == null || mManualFocusEngaged) return;
+        if (mCameraId == null ) return;
+        mManualFocusEngaged=true;
 
         CameraManager mCameraManager = null;
         if (mCameraManager == null) {
@@ -1305,42 +1336,42 @@ public class Camera2APIActivity extends AppCompatActivity
                     halfTouchLength * 2,
                     MeteringRectangle.METERING_WEIGHT_MAX - 1);
         }
-//
-//        CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-//
-//            @Override
-//            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
-//                super.onCaptureCompleted(session, request, result);
-//
-//                mManualFocusEngaged = false;
-//
-//
-//                if (true) { // previously getTag == "Focus_tag"
-//                    //the focus trigger is ecomplete -
-//                    //resume repeating (preview surface will get frames), clear AF trigger
-//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
-//                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);// As documentation says AF_trigger can be null in some device
-//                    try {
-//                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, mBackgroundHandler);
-//                    } catch (CameraAccessException e) {
-//                        // error handling
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
-//                super.onCaptureFailed(session, request, failure);
-//                mManualFocusEngaged = false;
-//            }
-//
-//        };
-//
-//        mCaptureSession.stopRepeating(); // Destroy current session
-//        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
-//        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-//        mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler); //Set all settings for once
+
+        CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+
+            @Override
+            public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                super.onCaptureCompleted(session, request, result);
+
+                mManualFocusEngaged = true;
+
+
+                if (true) { // previously getTag == "Focus_tag"
+                    //the focus trigger is ecomplete -
+                    //resume repeating (preview surface will get frames), clear AF trigger
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+                    mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);// As documentation says AF_trigger can be null in some device
+                    try {
+                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, null);
+                    } catch (CameraAccessException e) {
+                        // error handling
+                    }
+                }
+            }
+
+            @Override
+            public void onCaptureFailed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureFailure failure) {
+                super.onCaptureFailed(session, request, failure);
+                mManualFocusEngaged = false;
+            }
+
+        };
+
+        mCaptureSession.stopRepeating(); // Destroy current session
+        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
+        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+        mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler); //Set all settings for once
 
         if (isMeteringAreaAESupported()) {
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_REGIONS, new MeteringRectangle[]{focusArea});
