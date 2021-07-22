@@ -1042,12 +1042,11 @@ public class Camera2APIActivity extends AppCompatActivity
 
     private void setAutoFlash(CaptureRequest.Builder requestBuilder) {
         if (mFlashSupported) {
-            Log.e(TAG, "setAutoFlash: "+CONTROL_AVAILABLE_SCENE_MODES );
             Log.e(TAG, "setAutoFlash: "+FLASH_MODE );
           switch(FLASH_MODE) {
               case 0:
                   requestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-                  requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_SINGLE);
+                  requestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
                  // requestBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_FLUORESCENT);
               break;
 //              case 1:
