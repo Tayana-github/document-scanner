@@ -24,8 +24,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Intent intent = new Intent(MainActivity.this, com.example.mylibrary.MainActivity.class);
 
-        intent.putExtra("sourceType", 1);
-        intent.putExtra("CROP_ENABLE", true);
+        intent.putExtra("sourceType", 0);
+        intent.putExtra("CROP_ENABLE", false);
         intent.putExtra("targetHeight", 720);
         intent.putExtra("targetWidth", 1080);
         intent.putExtra("quality", 50);
@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.e(TAG, "onActivityResult: decode" );
 
-                    Log.e(TAG, "onActivityResult: " + StorageControler.getFileToByte(getApplicationContext(), Uri.parse(extras.getString("filepath"))));
+                    Log.e(TAG, "onActivityResult: " + StorageControler.getFileToByte(getApplicationContext(), Uri.parse(extras.getString("filepath")),0,0,50,0,false));
 
 
             }

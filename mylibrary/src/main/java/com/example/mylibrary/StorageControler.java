@@ -10,14 +10,20 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
+
+import androidx.exifinterface.media.ExifInterface;
+
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
+import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -41,7 +47,6 @@ public class StorageControler {
         this.targetWidth=targetWidth;
         this.targetHeight=targetHeight;
         this.quality=quality;
-
     }
 
     public void createTempDir() {
@@ -240,7 +245,7 @@ return filename;
     }
 
 
-    public static String getFileToByte(Context context,Uri uri)  {
+    public static String getFileToByte(Context context,Uri uri,int targetWidth,int targetHeight,int quality,int srctype,boolean crop_enable)  {
         Mat mat = new Mat();
         String encodeString = null;
         try {
@@ -250,6 +255,28 @@ return filename;
 
         Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB);
 
+            if(!crop_enable&&srctype==0){
+                int a = getCameraPhotoOrientation(context, uri);
+
+                mat = rotateBitmap(mat, a);
+
+                int width = mat.width();
+                int height = mat.height();
+                Log.e("shravan", "getFileToByte: "+mat.size() );
+                if (targetWidth != 0 || targetHeight != 0) {
+                    width = targetWidth > 0 ? targetWidth : mat.width();
+                    height = targetHeight > 0 ? targetHeight :mat.height();
+                } else if (quality > 0) {
+                    width = mat.width() * quality / 100;
+                    height = mat.height() * quality / 100;
+
+                }
+
+                Size sz = new Size(width,height);
+
+                Imgproc.resize( mat, mat, sz );
+            }
+            Log.e("shravamn", "getFileToByte: "+mat.size() );
         MatOfByte matOfByte = new MatOfByte();
         Imgcodecs.imencode(".jpg", mat, matOfByte);
         byte[] byteArray = matOfByte.toArray();
@@ -268,6 +295,43 @@ return filename;
         }
         mat.release();
         return encodeString;
+    }
+
+
+    public static int getCameraPhotoOrientation(Context context, Uri uri) throws IOException {
+        int orientation = 0;
+        InputStream input = context.getContentResolver().openInputStream(uri);
+        if (input != null) {
+            ExifInterface exif = new ExifInterface(input);
+            orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            input.close();
+        }
+        return orientation;
+    }
+
+
+    public static Mat rotateBitmap(Mat mat, int orientation) {
+        Log.e("TAG", "rotateBitmap: " + orientation);
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_NORMAL:
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                Core.rotate(mat, mat, Core.ROTATE_180);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                Core.rotate(mat, mat, Core.ROTATE_90_CLOCKWISE);
+                break;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                Core.rotate(mat, mat, Core.ROTATE_90_CLOCKWISE);
+                Core.flip(mat, mat, -1);
+                break;
+            default:
+                break;
+
+        }
+
+        return mat;
     }
 
 }
