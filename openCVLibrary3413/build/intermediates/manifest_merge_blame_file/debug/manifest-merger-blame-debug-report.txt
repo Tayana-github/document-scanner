@@ -5,10 +5,9 @@
 5    android:versionName="3.4.13" >
 6
 7    <uses-sdk
-7-->D:\myLibrary\openCVLibrary3413\src\main\AndroidManifest.xml:7:5-73
 8        android:minSdkVersion="21"
-8-->D:\myLibrary\openCVLibrary3413\src\main\AndroidManifest.xml:7:15-40
+8-->F:\Tayana_projects\myLibrary\openCVLibrary3413\src\main\AndroidManifest.xml
 9        android:targetSdkVersion="30" />
-9-->D:\myLibrary\openCVLibrary3413\src\main\AndroidManifest.xml:7:41-70
+9-->F:\Tayana_projects\myLibrary\openCVLibrary3413\src\main\AndroidManifest.xml
 10
 11</manifest>
